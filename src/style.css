@@ -1,5 +1,3 @@
-@import url(//fonts.googleapis.com/css?family=Vollkorn);
-
 body {
   font-family: 'Vollkorn', serif;
   color: #46433A;
@@ -9,16 +7,11 @@ a:link {
   color: #CE534D;
   text-decoration: none;
 }
-a:visited {
-  color: #CE534D;
-  text-decoration: none;
-}
-.wrapper-index {
+.wrapper {
   width: 680px;
   margin: 18% auto 0 auto;
   padding-top: 0;
 }
-
 header {
   float: left;
   width: 46%;
@@ -57,13 +50,4 @@ main {
   background: transparent;
   height: 24px;
   width: 24px;
-}
-
-.top {
-  width: 680px;
-  margin-bottom: 90px;
-}
-.wrapper-about {
-  width: 680px;
-  margin: 6% auto 0 auto;
 }
