@@ -13,5 +13,7 @@ Action has been further impeded by conspiracy theorists, who claim that the Fort
 
 Still, protest against inaction has been huge, and Instagram temporarily shut down its servers due to a huge influx of “stories.” According to one student at the University of Alabama, “This is big. Real big. Every day I login to social media I read about a hundred posts sayin’ that we gotta do somethin’. We must not let the fire burn out. We must continue to post more stories.”
 
-Yesterday, when asked about the latest developments during a press conference, President Joe Biden said, “How would I know? C’mon man.” The administration declined to comment.
+Yesterday, when asked about the latest developments during a press conference, President Joe Biden said, “How would I know? C’mon man.”
+
+The administration declined to comment.
 
