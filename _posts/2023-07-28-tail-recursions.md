@@ -35,7 +35,7 @@ def reverse2[A](li: List[A]): List[A] = {
 
 Notice that there is no longer any remaining state in each frame when the method returns. The return value is simply a function call. In other words, instead of keeping track of the current solution in what is effectively a local variable, we are sticking it inside the method itself as an argument, in this case the `solution` variable. So every recursive call passes the current solution to the next, so on and so forth, until the end of the list is reached.
 
-Doing some simple benchmarking, we see that with a list of 1000 elements, `reverse1()` uses about 39MB of memory. With 1500 elements, it uses 55MB. And with a list of 2000 elements, it errors out with a stack overflow. On the other hand, `reverse2()` uses just 29MB for all three cases. It can even reverse 5000 elements, or 10,000 elements. The key here is that the bottleneck is no longer memory, but the time it takes for the method to finish running.
+Doing some simple benchmarking, we see that with a list of 1000 elements, `reverse1()` uses about 39MB of memory. With 1500 elements, it uses 55MB. And with a list of 2000 elements, it errors out with a stack overflow. On the other hand, `reverse2()` uses just 29MB for all three cases. It can even reverse 5000 elements, or 10,000 elements. The key here is that the bottleneck is no longer memory, but the total runtime of the program.
 
 As shown, a simple refactoring of the original solution to use tail recursion improves memory usage enormously, allowing us to write recursive functions in a way that would otherwise be intractable.
 
@@ -51,5 +51,3 @@ def reverse3[A](li: List[A]): List[A] = {
   }
 }
 ```
-
-But that's for another time :P
