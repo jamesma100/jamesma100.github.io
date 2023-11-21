@@ -8,13 +8,15 @@ Here are some tips and tricks that have made my life easier since transforming V
 #### Cut, copy, paste, delete
 I find myself cutting and pasting a lot, and not needing to take my hand off the keyboard to highlight text is life changing.
 
-`dd` deletes a whole line, `D` deletes everything from your cursor till the end of the line.
+For text deletion, `dd` deletes a whole line, `D` deletes everything from your cursor till the end of the line.
 
-`yiw` (**y**ank **i**nner **w**ord) copies the current word, and similarly `ciw` (change inner word) cuts it and puts you into insert mode.
+For copying/replacing, `yiw` (**y**ank **i**nner **w**ord) copies the current word, and similarly `ciw` (change inner word) cuts it and puts you into insert mode.
 This is great for rewriting a single word.
 `i`, or "inner",  means your cursor can be anywhere on the word for the command to take effect; without it, it would have to be at the beginning.
 
 To replace a word with something you copied into your clipboard, simply enter `viwp` (**v**isual mode, **i**nner, **w**ord, **p**aste!).
+A common pattern is to copy a single word and then replace some other word with what you just copied.
+In that case, you just need a `yiw` on the first word, followed by a `viwp` on the second.
 
 All these commands are able to be simple and deducible because Vim has great composibility.
 
@@ -36,7 +38,7 @@ Regular `p` will grab what's in the default register, `cuttext`, while the yanke
 
 
 #### Cursor movement
-`0` and `$` moves you to the beginning and end of a line, while `w` and `b` moves you between words.
+Some shortcuts I like include `0` and `$`, which move you to the beginning and end of a line, as well as `w` and `b`, which move you between words.
 Hit `gg` and `G` to move to the beginning and end of the file. `ctrl-o` gets you to your previous position.
 This also works between Vim sessions, meaning if you quit Vim after editing a file and reopen it, your previous position within the file is still saved.
 Another feature I like when writing deeply nested code is `%`, which jumps to the matching bracket or parenthesis.
