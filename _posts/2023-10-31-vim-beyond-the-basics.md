@@ -62,9 +62,28 @@ Finally, `:hide` closes the current window.
 
 #### Search and replace
 Searching is simply `/<something>` then `n`/`N` to move forward/backward.
+You can also type `*` to find the word your cursor is currently on.
 To search and replace your whole file, do `:%s/<search>/<replace>/c`.
 The ending `c` is used to confirm each replacement, as I find useful when the file is large and you don't want to accidentally replace something extraneous, but can be omitted.
 
 #### Fuzzy file search
+If you work on a large project, you might need fuzzy search.
 The best solution I've found is the external extension [ctrlp](https://github.com/kien/ctrlp.vim).
 There is a world of settings you can fiddle with (e.g. files to exclude, maximum number of files to search, which command to use when listing files). 
+
+#### Command line integration
+You can run shell commands with `:!`, e.g. `:!echo "hello world"` but I don't really do this, as you can't use the keybindings (or any of Vim's features).
+My preferred way of running commands is via `q:` (or `:ctrl-f`) - there you can see your recent shell history.
+A basic history looks something like:
+```
+:  3 :h cmdline-window
+:  2 echo "hello world"
+:  1 q!
+:51
+```
+The history displayed is just regular text that you can navigate, cut/copy, edit, delete, etc. - all from within Vim!
+To run `echo "goodbye world"`, for example,  you can just navigate up 2 lines, edit the existing "hello world" command, then hit enter. 
+Finally, you can `:q` or `ctrl-c` to quit the integrated shell.
+
+If you need a separate window to run your terminal, you can also use Vim's keybindings by setting `set -o vi` in your `~/.bashrc`.
+Though note that this only supports navigation, so you can't, for instance, copy and paste with `y` and `p`.
