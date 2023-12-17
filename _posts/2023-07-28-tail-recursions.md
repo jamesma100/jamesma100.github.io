@@ -3,7 +3,7 @@ layout: post
 title: "Tail recursions"
 ---
 
-I've been writing a bit of Scala lately. In particular, challenging myself to using purely functional features - no mutable variables, no shared state, no loops. I was blown away by how easy it is to write recursive functions in this manner. No need to worry about dangling references, locking global data structures, or things mutating underneath you in unexpected ways. And no more defensive mechanisms to get around those issues, such as deep copying a referenced object simply because you're not sure if something else is using it. But more importantly, the Scala compiler does a great job at recycling stack frames for recursion to be inexpensive.
+I've been writing a bit of Scala lately. In particular, challenging myself to using purely functional features - no mutable variables, no shared state, no loops. It's actually easy writing recursive functions in this manner. No need to worry about dangling references, locking global data structures, or things mutating underneath you in unexpected ways. And no more defensive mechanisms to get around those issues, such as deep copying a referenced object simply because you're not sure if something else is using it. But more importantly, the Scala compiler does a great job at recycling stack frames for recursion to be inexpensive.
 
 For instance, take this method that reverses a list:
 
