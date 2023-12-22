@@ -10,6 +10,7 @@ At the same time, Rust struct my radar as a promising language with its speed, m
 
 Here's some things I learned while building MapReduce in Rust, challenges of building 
 even simple distributed systems, and ideas I think are worth further pursuing.
+You can find the full code [here](https://github.com/jamesma100/mrlite) - try it out if you want, but I assume no responsibility!
 
 
 ### Overview
