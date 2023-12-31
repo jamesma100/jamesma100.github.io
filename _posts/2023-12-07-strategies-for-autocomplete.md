@@ -35,8 +35,8 @@ Notice that the more characters we type in, the faster the autocomplete returns,
 This is because the longer our prefix, the smaller the subtree of matching characters becomes, and thus the less time it takes to traverse it.
 
 An implementation could look something like below.
-Note that some functions, such as for adding and deleting nodes, are commented out as they're not relevant to returning the results but only for constructing the tree, but you can find the full code [here](https://github.com/jamesma100/triehugger/blob/main/triehugger.py).
-Once again, here we only care about the time it takes for the autocomplete to return our results, ignoring the cost of insertion, deletion, pruning the tree, etc. as the user is not blocked on those operations.
+Note that some functions, such as for adding and deleting nodes, are omitted here  as they're not relevant to returning the results but only for constructing the tree, but you can find the full code [here](https://github.com/jamesma100/triehugger/blob/main/triehugger.py).
+Once again, here we only care about the time it takes for the autocomplete to return our results, ignoring the cost of maintaining the tree structure, as the user is not blocked on those operations.
 
 ```
 class AutocompleteWithTree(object):
@@ -47,10 +47,10 @@ class AutocompleteWithTree(object):
         self.store = store
 
     def add(self, val):
-        pass
+        # omitted for brevity
 
     def delete(self, val):
-        pass
+        # omitted for brevity
 
     def find_root(self, word, idx=0):
         prefix = word[:idx + 1]
@@ -79,24 +79,24 @@ class AutocompleteWithTree(object):
         return root.complete_helper(word, [])
 ```
 
-Ideally for each prefix, we keep all words beginning with the prefix sorted by frequency in the tree such that we can simply return the first `X` elements we traverse, instead of searching through the whole subtree.
+Ideally, for each prefix, we should keep all words beginning with the prefix sorted by frequency in the tree such that we can simply return the first `X` elements we traverse, instead of searching through the whole subtree.
 This would make our runtime just `O(L + X)`.
-Lucene actually does this with its `FSTCompletionBuilder` class by sorting edge weights and traversing the highest-weight nodes first, allowing it to terminate as soon as the number of results requested is reached.
+[Lucene](https://lucene.apache.org/) actually does this with its `FSTCompletionBuilder` class by sorting edge weights and traversing the highest-weight nodes first, allowing it to terminate as soon as the number of results requested is reached.
 This is a bit trickier to implement, but you can read more about the algorithm [here](https://lucene.apache.org/core/7_1_0/suggest/org/apache/lucene/search/suggest/fst/FSTCompletionBuilder.html).
 
 #### Sorted sets
-The other solution is based on an excellent [blog post](http://oldblog.antirez.com/post/autocomplete-with-redis.html) that descibes using sorted sets to store words based on frequency, by the creator of Redis.
+Another solution is based on an excellent [blog post](http://oldblog.antirez.com/post/autocomplete-with-redis.html) that descibes using sorted sets to store words based on frequency, by the creator of Redis.
 The idea is that we have a sorted set that sorts words based on their score, and if two words have identical scores, they are ordered lexicographically.
 So autocompleting based on some prefix is a matter of 1. finding the position of that prefix in the set and 2. returning every word after it, as they will necessarily contain the given prefix.
 
+The following implements this using an in-memory Redis database that stores the sorted sets.
 ```
 class AutocompleteRedis:
     def __init__(self, source, name=":compl", port=6379):
         self.r = redis.Redis(host="localhost", port=port, decode_responses=True)
         self.name = name
         self.source = source
-    def create_db(self):
-        pass
+        
     def complete(self, s, limit=10):
         pos = self.r.zrank(":compl", s)
         if not pos:
@@ -120,13 +120,14 @@ class AutocompleteRedis:
                         break
         return words
 ```
+The `complete()` method returns all possible autocomplete matches in lexicographic order.
 To order based on frequency, the author proposes using a sorted set for every prefix, and using it to store every searched word beginning with that prefix.
 When a full word is searched, we look for that word in the every sorted set representing each prefix, and update its score, thus promoting it towards the front of the set.
-Our autocomplete operation now consists of searching through every sorted prefix set (there are `L` total), finding the word in it (`logN`) and returning the rest of the set, which adds up to `O(L*logN)` - bad!
+Our autocomplete operation now consists of searching through every sorted prefix set (there are `L` total), finding the word in it (`logN`) and returning the rest of the set, which adds up to `O(L*logN)`. Bad!
 
 Since we are now storing words redundantly (a word of size `S` is stored `S` times, once in each prefix set), the author suggests limiting the size of each set, e.g. 300, and evicting the item with the lowest score if the set gets too large.
 This actually makes our runtime just `O(L)`, though we are kind of cheating since we are regularly pruning our data.
-You can imagine that if a few searches make up majority of total searches (a realistic scenario), new search terms never have a change to accumulate in our set because they would always be the first to get evicted.
+You can imagine that if a few searches make up majority of total searches (a realistic scenario), new search terms never have a chance to accumulate in our set because they would always be the first to get evicted.
 
 Also note that though we focused on big O and are thus dropping constants and coefficients, it can be a totally impractical metric.
-A runtime of `O(300,000,000,000L)` is linear time with respect to the average word length `L`, but certainly not fast!
+A runtime of `O(300,000,000,000L)` is linear time with respect to the average word length `L`, but is certainly not fast!
