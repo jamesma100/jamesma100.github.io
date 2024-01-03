@@ -3,13 +3,19 @@ layout: post
 title: "Strategies for autocomplete"
 ---
 
-Autocomplete works by automatically suggesting words as you type.
-For instance, you may type the word "app" and get a list of suggestions, such as "app store", "apple", and "application", sorted by search frequency.
-This means that upon entering a prefix, any algorithm we choose would need to  efficiently fetch the top results and return it to the user.
-And upon searching a full word, it would need to update that word's frequency, or add it to our data structure if it doesn't exist.
+Autocomplete is a search feature that takes in what you type in the search box and returns the most likely results.
+The key here is minimizing response time.
 
-Note that it is more important to optimize the former than the latter, as we have a latency requirement for autocomplete, but not for maintaining our data structure - the latter can be done asynchronously after the user is done with their search, while the former, displaying a list of suggestions, has to be almost instantaneous!
+Consider the average human, who types about 40 words per minute.
+The average English word is about 5 characters, so your user is typing at a speed of 200 characters per minute, or about 3 characters per second!
+If your autocomplete is any slower than that, it would be useless, as the user would finish their search before your suggestions can be returned.
 
+This means that upon entering a prefix, any algorithm we choose would need to efficiently fetch the top results and return it to the user.
+And upon searching a full word, it would need to update that word's frequency so its popularity can be adjusted.
+
+In this post we will explore some ways we can represent search terms in a data structure that allows us to retrieve top results as efficiently as possible. 
+
+> Note that we have a latency requirement for autocomplete, but not for maintaining whaterver data structure we choose - the former has to be near instantaneous, while the latter can be done asynchronously after the user is done with their search.
 
 #### First pass
 The first solution is to maintain a map of all searched words and their frequencies.
