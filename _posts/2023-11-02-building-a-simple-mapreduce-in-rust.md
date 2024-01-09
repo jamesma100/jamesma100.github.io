@@ -1,16 +1,16 @@
 ---
 layout: post
-title: "Implementing MapReduce in Rust"
+title: "Building a simple MapReduce in Rust"
 ---
 
-There's been many fascinating developments in what is called "big data" recently.
-Still, much of it traces back to Google's revered MapReduce, a framework for executing single instructions on large amounts of data.
-So I wanted to build a simple implementation to get a sense of how all the pieces fit together.
-At the same time, Rust struct my radar as a promising language with its speed, memory safety, and a decent async model.
+Recently I've been learning about Spark, which motivated me to really understand MapReduce, the underlying framework that greatly simplifies batch processing at scale.
 
-Here's some things I learned while building MapReduce in Rust, challenges of building 
+Luckily, once I read the paper and broadly grasped how all the pieces are glued together, it wasn't too hard hacking together a simple, lightweight system running on my laptop.
+I chose Rust as it's been on my radar for a while due to its memory safety, and I was looking for an excuse to try out its async model.
+You can find the full code [here](https://github.com/jamesma100/mrlite).
+
+I wanted to explore things I learned throughout, challenges of building 
 even simple distributed systems, and ideas I think are worth further pursuing.
-You can find the full code [here](https://github.com/jamesma100/mrlite) - try it out if you want, but I assume no responsibility!
 
 
 ### Overview
@@ -99,12 +99,130 @@ So a reduce worker must be given the location of these files, read them, call it
 
 The master must also keep track of how much time a worker is spending on a given task; if some limit is crossed, perhaps due to the worker clogging up or dying, that task is revoked from the worker and handed out to another worker.
 
-### Implementation notes
+Below is a visual diagram of the entire process, stolen from the original [paper](http://static.googleusercontent.com/media/research.google.com/en//archive/mapreduce-osdi04.pdf).
+![Mapreduce diagram](/assets/images/mapreduce.png)
+
+#### Implementation
 Both the master and worker processes essentially sit in an infinite while loop, in which the former waits for a request and the latter sends one whenever it becomes idle.
 
 For communication, we use the `tonic` gRPC framework to generate request/response types from protobuf structs, which also handles serialization for us.
 Furthermore, as Rust does not have a built-in async runtime, we defer to the popular crate `tokio`.
 Putting it all together, we can easily write server/client code that represents a master/worker interaction.
+
+Below is what a simple master implementation looks like.
+```
+#[tonic::async_trait]
+impl Task for TaskService {
+    async fn send_task(
+        &self,
+        request: Request<TaskRequest>,
+    ) -> Result<Response<TaskResponse>, Status> {
+
+        // Initialize client handler
+        let client_options = ClientOptions::parse(MONGO_HOST)
+            .await
+            .unwrap_or_else(|err| {
+                eprintln!("ERROR: could not parse address: {err}");
+                exit(1)
+            });
+        let client = Client::with_options(client_options).unwrap_or_else(|err| {
+            eprintln!("ERROR: could not initialize client: {err}");
+            exit(1)
+        });
+        let db = client.database(DB_NAME);
+
+        // Get existing map tasks from database
+        let coll = db.collection::<mongodb::bson::Document>(MAP_TASKS_COLL);
+        let distinct = coll.distinct("name", None, None).await;
+        
+        // Loop over all tasks looking for an idle one to assign
+        for key in distinct.unwrap() {
+            let res =
+                mongo_utils::get_task(&client, DB_NAME, MAP_TASKS_COLL, key.as_str().unwrap())
+                    .await;
+
+            // If a single map task is not done, set a flag to indicate map phase unfinished
+            if !(res.4.unwrap()) {
+                map_phase_done = false;
+            }
+
+            // If not assigned, hand out this task
+            if !(res.1.unwrap()) {
+                let response_filename = &res.0.unwrap();
+                let tasknum = res.3.unwrap();
+                let reply = TaskResponse {
+                    task_name: response_filename.to_string(),
+                    is_assigned: false,
+                    is_map: true,
+                    tasknum,
+                    done: false,
+                };
+
+                update_assigned(&client, DB_NAME, MAP_TASKS_COLL, response_filename, true).await;
+                return Ok(Response::new(reply));
+            }
+        }
+    }
+}
+```
+
+And the worker:
+```
+impl Worker {
+    pub async fn boot(&self) -> Result<(), Box<dyn std::error::Error>> {
+        // Initialize client
+        let client_options = ClientOptions::parse("mongodb://localhost:27017")
+            .await
+            .unwrap_or_else(|err| {
+                eprintln!("ERROR: could not parse address: {err}");
+                exit(1)
+            });
+        let db_client = Client::with_options(client_options).unwrap_or_else(|err| {
+            eprintln!("ERROR: could not initialize database client: {err}");
+            exit(1)
+        });
+        let db_name = "mapreduce";
+        let coll_name = "state";
+        let record_name = "current_master_state";
+
+        let n_map = mongo_utils::get_val(&db_client, db_name, coll_name, record_name, "n_map")
+            .await
+            .unwrap();
+        let n_reduce =
+            mongo_utils::get_val(&db_client, db_name, coll_name, record_name, "n_reduce")
+                .await
+                .unwrap();
+
+        let mut client = TaskClient::connect("http://[::1]:50051").await?;
+
+        // create new request asking for a task
+        let request = tonic::Request::new(TaskRequest { id: process::id() });
+        let response = client.send_task(request).await?;
+
+        // get info about the task
+        let is_map = response.get_ref().is_map;
+        let task_name = &response.get_ref().task_name;
+        let reduce_tasknum = calculate_hash(task_name) % n_reduce as u64;
+
+        if is_map {
+            // process map task and write results to disk
+            ...
+        } else {
+            // process reduce task and write results to disk
+            ...
+        }
+    }
+}
+#[tokio::main]
+async fn main() {
+    // Initialize worker
+    let worker: Worker = Worker::new(process::id(), false);
+    worker
+        .boot()
+        .await
+        .expect("ERROR: Could not boot worker process.");
+}
+```
 
 We also need to keep track of some shared state between the master and the workers, such as whether the entire job is finished or not.
 Keeping track of this information in memory as fields in the master seemed difficult in the face of concurrent updates as well as Rust's lifetime and borrowing rules.

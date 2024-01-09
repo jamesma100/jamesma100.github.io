@@ -15,7 +15,7 @@ And upon searching a full word, it would need to update that word's frequency so
 
 In this post we will explore some ways we can represent search terms in a data structure that allows us to retrieve top results as efficiently as possible. 
 
-> Note that we have a latency requirement for autocomplete, but not for maintaining whaterver data structure we choose - the former has to be near instantaneous, while the latter can be done asynchronously after the user is done with their search.
+> Note that we have a latency requirement for autocomplete, but not for maintaining whatever data structure we choose - the former has to be near instantaneous, while the latter can be done asynchronously after the user is done with their search.
 
 #### First pass
 The first solution is to maintain a map of all searched words and their frequencies.
