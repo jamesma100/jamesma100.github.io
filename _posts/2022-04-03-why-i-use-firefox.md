@@ -2,7 +2,6 @@
 layout: post
 title: "Why I use Firefox"
 ---
-Last Updated: 20 Nov 2023
 
 I use Firefox because I can customize everything I want, the way I want. I can choose which websites get to install cookies on me, and which don’t. But most importantly, I choose Firefox because it is upfront with me about what it does and what it doesn’t do.
 
