@@ -60,7 +60,7 @@ class AutocompleteWithTree(object):
         cur = val[:idx+1]
         if cur not in self.children:
             # Only store final leaf node
-            new_node = Triehugger(val=cur, parent=self, store=True if idx == len(val)-1 else False)
+            new_node = AutocompleteWithTree(val=cur, parent=self, store=True if idx == len(val)-1 else False)
             self.children[cur] = new_node
         # Node already exists! In that case, if we are at the final word in our recursion,
         # store the existing node
