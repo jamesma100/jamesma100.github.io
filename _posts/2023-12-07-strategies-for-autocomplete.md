@@ -3,14 +3,14 @@ layout: post
 title: "Strategies for autocomplete"
 ---
 
-Autocomplete is a search feature that takes in what you type in the search box and returns the most likely results.
-The key here is minimizing response time.
+Autocomplete is a feature in search engines that takes a user input and returns the most likely results based on that input.
+There are many avenues for optimisation, but the most important one should be response time.
 
 Consider the average human, who types about 40 words per minute.
 The average English word is about 5 characters, so your user is typing at a speed of 200 characters per minute, or about 3 characters per second!
 If your autocomplete is any slower than that, it would be useless, as the user would finish their search before your suggestions can be returned.
 
-This means that upon entering a prefix, any algorithm we choose would need to efficiently fetch the top results and return it to the user.
+This means that upon entering a prefix, our system would need to efficiently fetch the top results and return it to the user.
 And upon searching a full word, it would need to update that word's frequency so its popularity can be adjusted.
 
 In this post we will explore some ways we can represent search terms in a data structure that allows us to retrieve top results as efficiently as possible. 
@@ -41,7 +41,6 @@ Notice that the more characters we type in, the faster the autocomplete returns,
 This is because the longer our prefix, the smaller the subtree of matching characters becomes, and thus the less time it takes to traverse it.
 
 An implementation could look something like below.
-Note that some functions, such as for adding and deleting nodes, are omitted here  as they're not relevant to returning the results but only for constructing the tree, but you can find the full code [here](https://github.com/jamesma100/triehugger/blob/main/triehugger.py).
 Once again, here we only care about the time it takes for the autocomplete to return our results, ignoring the cost of maintaining the tree structure, as the user is not blocked on those operations.
 
 ```
@@ -53,10 +52,22 @@ class AutocompleteWithTree(object):
         self.store = store
 
     def add(self, val):
-        # omitted for brevity
+        self.add_help(val, 0)
 
-    def delete(self, val):
-        # omitted for brevity
+    def add_help(self, val, idx):
+        if idx == len(val):
+            return
+        cur = val[:idx+1]
+        if cur not in self.children:
+            # Only store final leaf node
+            new_node = Triehugger(val=cur, parent=self, store=True if idx == len(val)-1 else False)
+            self.children[cur] = new_node
+        # Node already exists! In that case, if we are at the final word in our recursion,
+        # store the existing node
+        elif idx == len(val)-1:
+            self.children[cur].store = True
+        child = self.children[cur]
+        child.add_help(val, idx+1)
 
     def find_root(self, word, idx=0):
         prefix = word[:idx + 1]
@@ -67,12 +78,12 @@ class AutocompleteWithTree(object):
                 return child.find_root(word, idx + 1)
         return None
 
-    def complete_helper(self, word, suggestions=[]):
+    def complete_help(self, word, suggestions=[]):
         if not self.children:
             return [self.val] if self.store else []
         child_suggestions = []
         for child in self.children.values():
-            child_suggestions.extend(child.complete_helper(word, []))
+            child_suggestions.extend(child.complete_help(word, []))
         if self.store:
             suggestions.append(self.val)
         suggestions.extend(child_suggestions)
@@ -82,13 +93,13 @@ class AutocompleteWithTree(object):
         root = self.find_root(word, 0)
         if not root:
             return []
-        return root.complete_helper(word, [])
+        return root.complete_help(word, [])
 ```
 
 Ideally, for each prefix, we should keep all words beginning with the prefix sorted by frequency in the tree such that we can simply return the first `X` elements we traverse, instead of searching through the whole subtree.
 This would make our runtime just `O(L + X)`.
-[Lucene](https://lucene.apache.org/) actually does this with its `FSTCompletionBuilder` class by sorting edge weights and traversing the highest-weight nodes first, allowing it to terminate as soon as the number of results requested is reached.
-This is a bit trickier to implement, but you can read more about the algorithm [here](https://lucene.apache.org/core/7_1_0/suggest/org/apache/lucene/search/suggest/fst/FSTCompletionBuilder.html).
+[Lucene](https://lucene.apache.org/) does exactly this with its `FSTCompletionBuilder` class by sorting edge weights and traversing the highest-weight nodes first, allowing it to terminate as soon as the number of results requested is reached.
+This is a bit trickier to implement, but you can read more about their algorithm [here](https://lucene.apache.org/core/7_1_0/suggest/org/apache/lucene/search/suggest/fst/FSTCompletionBuilder.html).
 
 #### Sorted sets
 Another solution is based on an excellent [blog post](http://oldblog.antirez.com/post/autocomplete-with-redis.html) that descibes using sorted sets to store words based on frequency, by the creator of Redis.
@@ -102,6 +113,23 @@ class AutocompleteRedis:
         self.r = redis.Redis(host="localhost", port=port, decode_responses=True)
         self.name = name
         self.source = source
+
+    def create_db(self):
+        if self.r.exists(":compl"):
+            self.r.delete(":compl")
+        prefixes = {}
+        with open(self.source) as fd:
+            for line in fd.readlines():
+                if line.startswith("#"):
+                    continue
+                word = line.strip()
+                wordlist = list(word)
+                # store all strict prefixes
+                # store final word with a "*" identifier
+                for i in range(1, len(wordlist) - 1):
+                    prefixes["".join(wordlist[:i])] = 0
+                prefixes[word + "*"] = 0
+        self.r.zadd(":compl", prefixes)
         
     def complete(self, s, limit=10):
         pos = self.r.zrank(":compl", s)
@@ -129,7 +157,7 @@ class AutocompleteRedis:
 The `complete()` method returns all possible autocomplete matches in lexicographic order.
 To order based on frequency, the author proposes using a sorted set for every prefix, and using it to store every searched word beginning with that prefix.
 When a full word is searched, we look for that word in the every sorted set representing each prefix, and update its score, thus promoting it towards the front of the set.
-Our autocomplete operation now consists of searching through every sorted prefix set (there are `L` total), finding the word in it (`logN`) and returning the rest of the set, which adds up to `O(L*logN)`. Bad!
+Our autocomplete operation now consists of searching through every sorted prefix set (there are `L` total), finding the word in it (`logN`) and returning the rest of the set, which adds up to `O(L*logN)`, which is pretty unacceptable.
 
 Since we are now storing words redundantly (a word of size `S` is stored `S` times, once in each prefix set), the author suggests limiting the size of each set, e.g. 300, and evicting the item with the lowest score if the set gets too large.
 This actually makes our runtime just `O(L)`, though we are kind of cheating since we are regularly pruning our data.
