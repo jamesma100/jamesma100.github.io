@@ -1,5 +1,5 @@
 _site/
-!_site/assets/scss/main.css
+!*/_site/assets/scss/main.css
 .sass-cache/
 .bundle/
 Gemfile.lock
