@@ -8,7 +8,7 @@ That is, given a large number of machines, how do we ensure they all eventually 
 
 The first thing to consider is how to respond to a client write request that needs to be replicated.
 Suppose we have a system consisting of a leader and three followers, and a client wants to write to it.
-When the request reaches the leader, the simplest thing we can do is simply return a success to the client and proceed with replication asynchronously, giving us the absolute minimum response time.
+When the request reaches the leader, the simplest thing we can do is immediately return a success to the client and proceed with replication asynchronously, giving us the absolute minimum response time.
 
 However, if the leader dies at this instant, and the write hasn't propgated to the followers yet, we've lost data.
 
@@ -21,12 +21,12 @@ client        leader  -------------------
                                         |--> follower3
 ```
 
-On the other extreme, we can ensure that the leader replicates the write to all three followers before committing the message and responding to the client.
+At the other extreme, we can ensure that the leader replicates the write to all three followers before committing the message and responding to the client.
 This will ensure maximum consistency; the write is persisted across many nodes, and we are fault tolerant.
 This however, means extreme latency for the client request, which now grows linearly with respect to the number of replicas.
 
 Thus, you can picture consistency and latency as tradeoffs on a Pareto frontier, where it is impossible to improve one without sacrificing the other.
-How we reach any point on the curve is beyond the coverage of this post, but could include things like code correctness and sufficient hardware capacity.
+How we reach any point on the curve is beyond the coverage of this post but in general would include things like code correctness and sufficient hardware capacity.
 
 In a practical scenario, we would want some sort of middle ground - replicate every client write to _some_ number of replicas `n`, where `n < m`, and `m` being the total number of replicas.
 
@@ -38,7 +38,7 @@ If the leader dies, we need to choose a new leader to take its place from a pool
 Ideally, we would like that pool to be large so we find a qualified candidate faster.
 
 How do we come up with this candidate pool?
-Since we want the new leader to have all written data we've acknowledged to our clients, we need to make sure the new leader is _caught up_ with the previous leader.
+Since we want the new leader to have all written data we've acknowledged to our client, we need to make sure the new leader is _caught up_ with the previous leader.
 
 Note that the number of candidates we have to go through depends on the number of _follower acknowledgments_ - that is, the number of followers we replicate each request to before returning a response to the client.
 
@@ -47,10 +47,10 @@ On the flip side, if we only require 3 up-to-date replicas, we would have to go 
 In general, given `n` replicas, the number of candidates to evaluate in the face of a leader crash is `n - w + 1`, where `w` is the number of follower acknowledgements.
 
 A common approach is to require a _majority_ of replicas to be in sync with the leader; that is,  given `2n + 1` nodes, we require `n + 1` acknowledgements.
-Now, if the leader crashes and we go through a candidate pool of `n + 1` followers to choose a new leader, we are guaranteed to find one that is up to date since there will necessarily be an overlap.
+Now, if the leader crashes and we go through a candidate pool of `n + 1` followers to choose a new leader, we are guaranteed to find one that is up to date as there will necessarily be an overlap.
 
 ### Kafka and ISRs
-Kafka does not do a majority-based quorum, but rather hard-selects a list of what it calls ISRs (in-sync replicas).
+Kafka does not use a majority-based quorum, but rather hard-selects a list of what it calls ISRs (in-sync replicas).
 Every write request requires that it is replicated to all ISRs to be committed, and the number of ISRs is configurable via a user property `min.insync.replicas`.
 
 ```
@@ -63,26 +63,25 @@ log:    | [1, 2, 3]    [1, 2, 3]     [1, 2, 3] |   [1, 2]
         |--------------------------------------|
                         ISRs
 ```
-In the example above, it's okay for follower 3 to lag, since it's not in the ISR.
+In the example above, it's okay for follower 3 to lag, since it's not in the ISR set.
 
-The reason for this approach is that for majority-based systems, the _ratio_ between in-sync replicas to total replicas is too small.
+The reason for this approach is that for majority-based systems, the _ratio_ of in-sync replicas to total replicas is too small.
 Namely, to have `n + 1` in-sync replicas, we need at least `2n` _total_ replicas.
-Usually, we can't afford to have that many total replicas.
-But if we reduce the number of total replicas, the number of in-sync replicas becomes unacceptably low.
+Usually, we can't afford to have that many total replicas, but if we reduce it, the number of in-sync replicas becomes unacceptably low.
 Using ISRs allows every system to dynamically navigate this tradeoff to fit its own requirements.
 
 ### What if I choose a majority for my ISRs?
 Suppose we have `2n` replicas.
-How would choosing `n + 1` as our number of ISRs differ from a majority quorum approach, which would also require `n + 1` replicas to be in sync?
+How would choosing `n + 1` as our `min.insync.replicas` differ from a majority quorum approach, which would also require `n + 1` replicas to be in sync?
 
 The difference here is that in the ISR case, we are selecting `n + 1` _specific_ followers that need to be up-to-date with the leader.
 On the other hand, the majority quorum case simply requires _any_ `n + 1` followers to acknowledge writes.
 
 The practical difference between the two scenarios is that the latter has a significant latency advantage.
 
-Suppose we have 10 servers numbered 1 to 10 and ordered by latency (server 1 is the fastest with a 1s tail latency), and we choose our `min.insync.replicas = 6`, a majority.
+For example, let's assume we have 10 servers numbered 1 to 10 and ordered by latency (server 1 is the fastest with a 1s tail latency), and we choose `min.insync.replicas = 6`, a majority.
 In the best case scenario, our ISR set include servers 1 to 6, so the latency of any client request is 6s.
-In the worst case scenario, our ISR is servers 5 to 10, giving us a 10s latency.
+In the worst case scenario, our ISRs are servers 5 to 10, giving us a 10s latency.
 
 On the other hand, if we use a majority quorum, all 9 followers receive the replication request from the leader, and servers 2 to 6 complete their replication and send their acknowledgements first, so our latency is always 6s.
 
@@ -131,7 +130,7 @@ Imagine the scenario with servers S0, S1 and S2 and with ISR = (S0, S1, S2).
  6. S0 becomes leader, since it is the only one in ISR
  7. Note that S0 never flushed `e7`, but since it became leader, it is now the source of truth, and force S1 and S2 to adopt its log, meaning `e7` is permanently lost.
 
-[KIP-966](https://cwiki.apache.org/confluence/display/KAFKA/KIP-966%3A+Eligible+Leader+Replicas) resolved this issue.
+This is referred to as the last standing replica problem and was resolved by [KIP-966](https://cwiki.apache.org/confluence/display/KAFKA/KIP-966%3A+Eligible+Leader+Replicas).
 
 ### A whirlwind tour of persistence
 You may be wondering why it's possible that at step 2, `e7` was committed but not persisted to all the servers.
@@ -154,12 +153,13 @@ This would obviously slow things down, as we can no longer buffer data in the ke
 
 Note that I used the word "increase" and "safer" to describe persistence, and never "safe" or "guarantee."
 This is because persistence is never absolute.
-Even getting a successful return from `fsync()` doesn't guarantee persistence, as your disk likely stores data in its track cache until enough data has accumulated, rather than potentially waiting for a full revolution of a disk platter on every read.
+Even getting a successful return from `fsync()` [doesn't guarantee persistence](https://dl.acm.org/doi/10.1145/2367376.2367378), as your disk likely stores data in its track cache until enough data has accumulated, rather than potentially waiting for a full revolution of a disk platter on every write.
 
 We could even go one step further and assume data is physically on storage media (magnetic tape, NAND chip, etc.), but your data center burns down and all your disks are destroyed.
 This is a rather absurd hypothetical, but the takeaway here is that the meaning of persistence depends on context and interpretation.
 
 Going back to Kafka, we can see that the last replica standing issue can only occur because Kafka doesn't flush on every write, but rather relies on rollback and recovery after a crash.
+For more about crash consistency, check out this great [piece](https://queue.acm.org/detail.cfm?id=2801719) in which the authors (my university professors!) found a surprising number of bugs in modern applications.
 
 ### Uncommitted inconsistencies
 Note that so far we've only discussed inconsistencies of _committed_ data - uncommitted data can still be inconsistent.
