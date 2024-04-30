@@ -17,7 +17,7 @@ In this post we will explore some ways we can represent search terms in a data s
 
 > Note that we have a latency requirement for autocomplete, but not for maintaining whatever data structure we choose - the former has to be near instantaneous, while the latter can be done asynchronously after the user is done with their search.
 
-#### First pass
+### First pass
 The first solution is to maintain a map of all searched words and their frequencies.
 When a word `w0` is searched, loop through all the words, collect those with prefix `w0` into a list, sort the list by frequency, and return it.
 Then, increment `w0`'s frequency by 1.
@@ -25,7 +25,7 @@ If `N` is the total number of words ever searched, `L` is the average length of 
 Ignoring hash collisions, incrementing the frequency is constant.
 This would give us `O(N*L + XlogX)` per letter entered!
 
-#### Prefix trees
+### Prefix trees
 Alternatively, we could represent our search space with a prefix tree.
 A prefix tree consists of a node per letter in a word, and a full word is formed by following the appropriate nodes from the root.
 
@@ -60,10 +60,12 @@ class AutocompleteWithTree(object):
         cur = val[:idx+1]
         if cur not in self.children:
             # Only store final leaf node
-            new_node = AutocompleteWithTree(val=cur, parent=self, store=True if idx == len(val)-1 else False)
+            new_node = AutocompleteWithTree(
+                val=cur, parent=self,
+                store=True if idx == len(val)-1 else False)
             self.children[cur] = new_node
-        # Node already exists! In that case, if we are at the final word in our recursion,
-        # store the existing node
+        # Node already exists! In that case, if we are at the
+        # final word in our recursion, store the existing node
         elif idx == len(val)-1:
             self.children[cur].store = True
         child = self.children[cur]
@@ -101,7 +103,7 @@ This would make our runtime just `O(L + X)`.
 [Lucene](https://lucene.apache.org/) does exactly this with its `FSTCompletionBuilder` class by sorting edge weights and traversing the highest-weight nodes first, allowing it to terminate as soon as the number of results requested is reached.
 This is a bit trickier to implement, but you can read more about their algorithm [here](https://lucene.apache.org/core/7_1_0/suggest/org/apache/lucene/search/suggest/fst/FSTCompletionBuilder.html).
 
-#### Sorted sets
+### Sorted sets
 Another solution is based on an excellent [blog post](http://oldblog.antirez.com/post/autocomplete-with-redis.html) that descibes using sorted sets to store words based on frequency, by the creator of Redis.
 The idea is that we have a sorted set that sorts words based on their score, and if two words have identical scores, they are ordered lexicographically.
 So autocompleting based on some prefix is a matter of 1. finding the position of that prefix in the set and 2. returning every word after it, as they will necessarily contain the given prefix.

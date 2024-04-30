@@ -13,9 +13,11 @@ whereas an interpreter is defined as:
 > a computer program that directly executes instructions written in a programming or scripting language, without requiring them previously to have been compiled into a machine language program.
 
 It isn't clear to me, from the definitions alone, how the two differ, so I thought I would try to clarify the distinction between the two by looking at how they would be implemented in practice.
+You can find the source code for a basic interpreter I wrote [here](https://github.com/jamesma100/bfint).
+
 But first, we need to take a detour and talk about Brainfuck.
 
-## Background: Brainfuck
+### Background: Brainfuck
 Brainfuck is a super simple (though Turing complete!) programming language that consists of just 8 instructions, making it a popular language to build compilers and interpreters for.
 The instructions are:
 - `>` - move instruction pointer to the right by one
@@ -31,10 +33,9 @@ A couple things to note here:
 - the instruction pointer is pointer that loops through each instruction in the code, moving forward by one every time (unless a `[` or `]` is encountered), and initially points to the beginning of some memory segment, which stores our data.
 - the "current byte" is the data stored at the location the instruction pointer is currently pointing to.
 
-## Interpreting vs JIT'ing
-With the basics out of the way, let's compare how we would execute Brainfuck code with an interpreter vs with a JIT.
-
 ### The easy way: an interpreter
+With the basics out of the way, let's look at how we would execute Brainfuck code with an interpreter.
+
 Interpreting source code is a pretty straightforward concept.
 You simply write an interpreter program that loops through the input source code and execute each line _as part of the original interpreter program_.
 As we will see later on, this is the key distinction between an interpreter and a JIT.
@@ -172,14 +173,14 @@ void inc(Memory *mem) {
 }
 ```
 
-#### A note on security
+### A note on security
 Note that allocating executable memory pages opens us up to potential security vulnerabilities.
 This is because data in this region can now be interpreted as valid computer instructions, i.e. the `eip` register can now point to some location in this allocated page.
 If someone is able to write to this page, the CPU can be made to [execute arbitrary code](https://en.wikipedia.org/wiki/Heap_spraying).
 For this reason, it's important for memory to never be [both writable and executable](https://en.wikipedia.org/wiki/W%5EX) at the same time.
 So instead of doing what we did above, the safe approach would be to first do the memory-mapping with the writable bit set. Then, when our machine code is copied into the page, atomically give it executable permission while taking away its writable permission.
 
-#### Intermediate representations
+### Intermediate representations
 Contrary to our example, JITs typically do not directly compile source code to machine code.
 Often, it first compiles source code down to an [intermediate representation](https://en.wikipedia.org/wiki/Intermediate_representation), which can be further compiled to machine code at a _much_ faster speed.
 For instance, JVM languages are compiled down to an intermediate representation known as bytecode, which is then compiled by the JVM into machine code.
@@ -187,6 +188,7 @@ Furthermore, LLVM is centered around the idea of a _common_ intermediate represe
 
 However, an intermediate representation can also colloquially refer to any format that optimizes the original source code and makes compiling it simpler or faster.
 For instance, the sequence of `>>>>>` can be transformed into `>5` (move instruction pointer right by five), which lets us simply do `add $5, %rax` instead of `add $1, %rax` five times.
-Similarly, in an interpreter I wrote for Brainfuck, a [preprocessing phase](https://github.com/jamesma100/bfint/blob/main/src/preprocess.c#L38) parses through the source code and maps all `[`'s to `]`s (and vice versa), providing information such as line number and position within each line, so that when jumping from one bracket to another, we can simply use the location of the first to look up the location of the second, then move the instruction pointer there directly.
+Similarly, we can have a [preprocessing phase](https://github.com/jamesma100/bfint/blob/main/src/preprocess.c#L38) that parses through the source code and maps all `[`'s to `]`s (and vice versa), providing information such as line number and position within each line.
+Now, when when jumping from one bracket to another, we can simply use the location of the first to look up the location of the second, then move the instruction pointer there directly.
 
 

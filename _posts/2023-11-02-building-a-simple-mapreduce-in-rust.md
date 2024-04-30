@@ -102,7 +102,7 @@ The master must also keep track of how much time a worker is spending on a given
 Below is a visual diagram of the entire process, stolen from the original [paper](http://static.googleusercontent.com/media/research.google.com/en//archive/mapreduce-osdi04.pdf).
 ![Mapreduce diagram](/assets/images/mapreduce.png)
 
-#### Implementation
+### Implementation
 Both the master and worker processes essentially sit in an infinite while loop, in which the former waits for a request and the latter sends one whenever it becomes idle.
 
 For communication, we use the `tonic` gRPC framework to generate request/response types from protobuf structs, which also handles serialization for us.
@@ -114,17 +114,13 @@ Below is what a simple master implementation looks like.
 #[tonic::async_trait]
 impl Task for TaskService {
     async fn send_task(
-        &self,
-        request: Request<TaskRequest>,
+        &self, request: Request<TaskRequest>,
     ) -> Result<Response<TaskResponse>, Status> {
-
-        // Initialize client handler
         let client_options = ClientOptions::parse(MONGO_HOST)
-            .await
-            .unwrap_or_else(|err| {
+            .await.unwrap_or_else(|err| {
                 eprintln!("ERROR: could not parse address: {err}");
                 exit(1)
-            });
+            }); // initialize client handler
         let client = Client::with_options(client_options).unwrap_or_else(|err| {
             eprintln!("ERROR: could not initialize client: {err}");
             exit(1)
@@ -137,28 +133,27 @@ impl Task for TaskService {
         
         // Loop over all tasks looking for an idle one to assign
         for key in distinct.unwrap() {
-            let res =
-                mongo_utils::get_task(&client, DB_NAME, MAP_TASKS_COLL, key.as_str().unwrap())
-                    .await;
+            let res = mongo_utils::get_task(
+                &client, DB_NAME, MAP_TASKS_COLL, key.as_str().unwrap())
+                .await;
 
-            // If a single map task is not done, set a flag to indicate map phase unfinished
+            // If a single map task is not done,
+            // set a flag to indicate map phase unfinished
             if !(res.4.unwrap()) {
                 map_phase_done = false;
             }
-
             // If not assigned, hand out this task
             if !(res.1.unwrap()) {
                 let response_filename = &res.0.unwrap();
                 let tasknum = res.3.unwrap();
                 let reply = TaskResponse {
                     task_name: response_filename.to_string(),
-                    is_assigned: false,
-                    is_map: true,
-                    tasknum,
-                    done: false,
+                    is_assigned: false, is_map: true,
+                    tasknum, done: false,
                 };
-
-                update_assigned(&client, DB_NAME, MAP_TASKS_COLL, response_filename, true).await;
+                update_assigned(
+                    &client, DB_NAME, MAP_TASKS_COLL,
+                    response_filename, true).await;
                 return Ok(Response::new(reply));
             }
         }
@@ -172,8 +167,7 @@ impl Worker {
     pub async fn boot(&self) -> Result<(), Box<dyn std::error::Error>> {
         // Initialize client
         let client_options = ClientOptions::parse("mongodb://localhost:27017")
-            .await
-            .unwrap_or_else(|err| {
+            .await.unwrap_or_else(|err| {
                 eprintln!("ERROR: could not parse address: {err}");
                 exit(1)
             });
@@ -184,15 +178,11 @@ impl Worker {
         let db_name = "mapreduce";
         let coll_name = "state";
         let record_name = "current_master_state";
-
         let n_map = mongo_utils::get_val(&db_client, db_name, coll_name, record_name, "n_map")
-            .await
-            .unwrap();
+            .await.unwrap();
         let n_reduce =
             mongo_utils::get_val(&db_client, db_name, coll_name, record_name, "n_reduce")
-                .await
-                .unwrap();
-
+                .await.unwrap();
         let mut client = TaskClient::connect("http://[::1]:50051").await?;
 
         // create new request asking for a task
