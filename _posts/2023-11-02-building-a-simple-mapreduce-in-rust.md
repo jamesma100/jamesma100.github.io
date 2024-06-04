@@ -63,31 +63,28 @@ In Rust, these two functions could look something like:
 use std::collections::HashMap;
 
 fn map(pair: (&str, i32)) -> (String, i32) {
-    let mut word = pair.0.chars();
-    match word.next() {
-        None => (String::new(), pair.1),
-        Some(c) => (c.to_uppercase().chain(word).collect(), pair.1),
-    }
+  let mut word = pair.0.chars();
+  match word.next() {
+    None => (String::new(), pair.1),
+    Some(c) => (c.to_uppercase().chain(word).collect(), pair.1),
+  }
 }
 
 fn reduce(pairs: Vec<(&str, u32)>) -> HashMap<&str, u32> {
-    let mut reduced_pairs = HashMap::new();
-    for pair in pairs.iter() {
-        match reduced_pairs.get(pair.0) {
-            None => reduced_pairs.insert(pair.0, pair.1),
-            Some(val) => reduced_pairs.insert(pair.0, val + pair.1),
-        };
-    }    
-    reduced_pairs
+  let mut reduced_pairs = HashMap::new();
+  for pair in pairs.iter() {
+    match reduced_pairs.get(pair.0) {
+      None => reduced_pairs.insert(pair.0, pair.1),
+      Some(val) => reduced_pairs.insert(pair.0, val + pair.1),
+    };
+  }    
+  reduced_pairs
 }
 ```
 
 ### Design
 A basic design consists of one master node, and one or more worker nodes.
 The master initializes a number of map and reduce tasks, typically specified by the user, and keeps metadata about those tasks, such as its completion status and whether it is a map or reduce task.
-
-> Note that this distinction between map and reduce-style operations is actually important for persistence. Frameworks like Spark rely on lineage for disaster recovery - that is, logging a sequence of operations on a large number of columns rather than recording every individual, granular update.
-During a failure, a map task that operates on some partition of data can be easily re-executed for just that partition. However, in the case of a reduce task, which takes on many dependencies, the system must replay not just the task itself, but all its dependee tasks.
 
 Once a worker boots, it will send a RPC to the master, asking for a task.
 The master will look through its list of available tasks and assign one to the worker.
@@ -111,106 +108,103 @@ Putting it all together, we can easily write server/client code that represents 
 
 Below is what a simple master implementation looks like.
 ```
-#[tonic::async_trait]
-impl Task for TaskService {
-    async fn send_task(
-        &self, request: Request<TaskRequest>,
-    ) -> Result<Response<TaskResponse>, Status> {
-        let client_options = ClientOptions::parse(MONGO_HOST)
-            .await.unwrap_or_else(|err| {
-                eprintln!("ERROR: could not parse address: {err}");
-                exit(1)
-            }); // initialize client handler
-        let client = Client::with_options(client_options).unwrap_or_else(|err| {
-            eprintln!("ERROR: could not initialize client: {err}");
-            exit(1)
-        });
-        let db = client.database(DB_NAME);
+async fn send_task(
+  &self, request: Request<TaskRequest>,
+) -> Result<Response<TaskResponse>, Status> {
+  let client_options = ClientOptions::parse(MONGO_HOST)
+    .await.unwrap_or_else(|err| {
+      eprintln!("ERROR: could not parse address: {err}");
+      exit(1)
+    }); // initialize client handler
+  let client = Client::with_options(client_options).unwrap_or_else(|err| {
+    eprintln!("ERROR: could not initialize client: {err}");
+    exit(1)
+  });
+  let db = client.database(DB_NAME);
 
-        // Get existing map tasks from database
-        let coll = db.collection::<mongodb::bson::Document>(MAP_TASKS_COLL);
-        let distinct = coll.distinct("name", None, None).await;
-        
-        // Loop over all tasks looking for an idle one to assign
-        for key in distinct.unwrap() {
-            let res = mongo_utils::get_task(
-                &client, DB_NAME, MAP_TASKS_COLL, key.as_str().unwrap())
-                .await;
+  // Get existing map tasks from database
+  let coll = db.collection::<mongodb::bson::Document>(MAP_TASKS_COLL);
+  let distinct = coll.distinct("name", None, None).await;
+  
+  // Loop over all tasks looking for an idle one to assign
+  for key in distinct.unwrap() {
+    let res = mongo_utils::get_task(
+      &client, DB_NAME, MAP_TASKS_COLL, key.as_str().unwrap())
+      .await;
 
-            // If a single map task is not done,
-            // set a flag to indicate map phase unfinished
-            if !(res.4.unwrap()) {
-                map_phase_done = false;
-            }
-            // If not assigned, hand out this task
-            if !(res.1.unwrap()) {
-                let response_filename = &res.0.unwrap();
-                let tasknum = res.3.unwrap();
-                let reply = TaskResponse {
-                    task_name: response_filename.to_string(),
-                    is_assigned: false, is_map: true,
-                    tasknum, done: false,
-                };
-                update_assigned(
-                    &client, DB_NAME, MAP_TASKS_COLL,
-                    response_filename, true).await;
-                return Ok(Response::new(reply));
-            }
-        }
+    // If a single map task is not done,
+    // set a flag to indicate map phase unfinished
+    if !(res.4.unwrap()) {
+      map_phase_done = false;
     }
+    // If not assigned, hand out this task
+    if !(res.1.unwrap()) {
+      let response_filename = &res.0.unwrap();
+      let tasknum = res.3.unwrap();
+      let reply = TaskResponse {
+        task_name: response_filename.to_string(),
+        is_assigned: false, is_map: true,
+        tasknum, done: false,
+      };
+      update_assigned(
+        &client, DB_NAME, MAP_TASKS_COLL,
+        response_filename, true).await;
+      return Ok(Response::new(reply));
+    }
+  }
 }
+
 ```
 
 And the worker:
 ```
-impl Worker {
-    pub async fn boot(&self) -> Result<(), Box<dyn std::error::Error>> {
-        // Initialize client
-        let client_options = ClientOptions::parse("mongodb://localhost:27017")
-            .await.unwrap_or_else(|err| {
-                eprintln!("ERROR: could not parse address: {err}");
-                exit(1)
-            });
-        let db_client = Client::with_options(client_options).unwrap_or_else(|err| {
-            eprintln!("ERROR: could not initialize database client: {err}");
-            exit(1)
-        });
-        let db_name = "mapreduce";
-        let coll_name = "state";
-        let record_name = "current_master_state";
-        let n_map = mongo_utils::get_val(&db_client, db_name, coll_name, record_name, "n_map")
-            .await.unwrap();
-        let n_reduce =
-            mongo_utils::get_val(&db_client, db_name, coll_name, record_name, "n_reduce")
-                .await.unwrap();
-        let mut client = TaskClient::connect("http://[::1]:50051").await?;
+pub async fn boot(&self) -> Result<(), Box<dyn std::error::Error>> {
+  // Initialize client
+  let client_options = ClientOptions::parse("mongodb://localhost:27017")
+    .await.unwrap_or_else(|err| {
+      eprintln!("ERROR: could not parse address: {err}");
+      exit(1)
+    });
+  let db_client = Client::with_options(client_options).unwrap_or_else(|err| {
+    eprintln!("ERROR: could not initialize database client: {err}");
+    exit(1)
+  });
+  let db_name = "mapreduce";
+  let coll_name = "state";
+  let record_name = "current_master_state";
+  let n_map = mongo_utils::get_val(&db_client, db_name, coll_name, record_name, "n_map")
+    .await.unwrap();
+  let n_reduce =
+    mongo_utils::get_val(&db_client, db_name, coll_name, record_name, "n_reduce")
+        .await.unwrap();
+  let mut client = TaskClient::connect("http://[::1]:50051").await?;
 
-        // create new request asking for a task
-        let request = tonic::Request::new(TaskRequest { id: process::id() });
-        let response = client.send_task(request).await?;
+  // create new request asking for a task
+  let request = tonic::Request::new(TaskRequest { id: process::id() });
+  let response = client.send_task(request).await?;
 
-        // get info about the task
-        let is_map = response.get_ref().is_map;
-        let task_name = &response.get_ref().task_name;
-        let reduce_tasknum = calculate_hash(task_name) % n_reduce as u64;
+  // get info about the task
+  let is_map = response.get_ref().is_map;
+  let task_name = &response.get_ref().task_name;
+  let reduce_tasknum = calculate_hash(task_name) % n_reduce as u64;
 
-        if is_map {
-            // process map task and write results to disk
-            ...
-        } else {
-            // process reduce task and write results to disk
-            ...
-        }
-    }
+  if is_map {
+    // process map task and write results to disk
+    ...
+  } else {
+    // process reduce task and write results to disk
+    ...
+  }
 }
+
 #[tokio::main]
 async fn main() {
-    // Initialize worker
-    let worker: Worker = Worker::new(process::id(), false);
-    worker
-        .boot()
-        .await
-        .expect("ERROR: Could not boot worker process.");
+  // Initialize worker
+  let worker: Worker = Worker::new(process::id(), false);
+  worker
+    .boot()
+    .await
+    .expect("ERROR: Could not boot worker process.");
 }
 ```
 
@@ -220,12 +214,6 @@ Plus, what if the master dies and we have to start all over again because we los
 
 So here we defer to use some external storage, in our case a persistent Mongo instance.
 Though this only works since we are on one machine; if that were not the case, we would likely need something like Zookeeper, which is built for maintaining this sort of metadata while offering synchronization across many nodes.
-
-> Note that in terms of maintaining MapReduce metadata, we might want to choose the strongest consistency guarantees, as we don't have a ton of client reads or writes, and the overhead of maintaining consistency across various nodes should be dwarfed by the actual processing times of the tasks.
-Zookeeper, for instance, is NOT strongly consistent, but only so from a _client_ standpoint, meaning a client will not see older data than it previously read, but can still see older data than another client.
-Zookeeper does this to improve read throughput, as client reads can be served from any node without having to go through the leader.
-However, Zookeeper does have a `sync()` function, which ensures every client sees the latest writes, i.e. a write must be copied to every node before a read request can be served.
-
 
 ### Areas of work
 Some areas for potential improvements, in no particular order.
