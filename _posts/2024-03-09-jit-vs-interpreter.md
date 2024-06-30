@@ -152,14 +152,14 @@ void inc_jit(Memory *mem) {
 
   // emit machine code into the memory page we allocated
   unsigned char code[] = {
-    0x48, 0x89, 0xf8,                   // mov %rdi, %rax
-    0x48, 0x83, 0xc0, 0x01,             // add $1, %rax
+    0x48, 0x89, 0xf8,                   // mov rax, rdi
+    0x48, 0x83, 0xc0, 0x01,             // add rax, 1
     0xc3                                // ret
   };
   memcpy(exec_mem, code, sizeof(code));
 
   // cast in-memory binary into function pointer
-  incFuncPtr inc_func = exec_mem;
+  incFuncPtr inc_func = (incFuncPtr)exec_mem;
 
   // execute the function
   *mem->ptr = inc_func(*mem->ptr);
