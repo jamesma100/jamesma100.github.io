@@ -17,29 +17,20 @@ So reading a single 4-byte integer from memory will result in pulling in an exce
 
 Another effect is that if two pieces of data live in the same cache line and are modified simultaneously by multiple cores, each core will evict that corresponding cache line on every other core, a phenomenon known as [false sharing](https://en.wikipedia.org/wiki/False_sharing). 
 
-A typical memory hierarchy can be seen below.
-Each core has its own two layers of cache, and a third, shared layer sits between the L2 cache and main memory.
-Since L1 and L2 caches are per-core, we need to make sure they are consistent with each other - this is sometimes referred to as cache coherency.
-```
-----------------------------------------
-|                memory                |
-----------------------------------------
-|               L3 cache               |
-----------------------------------------
-|  L2 cache  |  L2 cache  |  L2 cache  |
-----------------------------------------
-|  L1 cache  |  L1 cache  |  L1 cache  |
-----------------------------------------
-|   core1    |   core2    |   core3    |
-----------------------------------------
-```
-The use of individual L1 and L2 caches leads to the problem of false sharing described previously.
+An example memory hierarchy can be seen below[[^1]].
+
+<img src="/assets/images/lstopo.png" alt="output of lstopo" width="400"/>
+
+Each core has its own L1 cache but share a single L2 layer which sits between the L1 caches and main memory.
+Since L1 caches are per-core, we need to make sure they are consistent with each other - this is referred to as [cache coherency](https://en.wikipedia.org/wiki/Cache_coherence).
+
+The use of individual L1 caches leads to the problem of false sharing described previously.
 
 Imagine two cores modifying variables `a` and `b`.
 Core 1 exclusively modifies `a`, while core 2 exclusively modifies `b`, so there is no potential for a race condition.
 However, the two variables happen to reside on the same cache line.
 So what happens is every time core 1 modifies `a`, core 2's cache gets invalidated.
-Thus, when core 2 attempts to read a previously cached `b`, a cache miss occurs, causing core 2 to need to fetch from memory.
+Thus, when core 2 attempts to read a previously cached `b`, a cache miss occurs, causing core 2 to need to fetch from L2.
 The sequence can be illustrated below, assuming the [MESI](https://en.wikipedia.org/wiki/MESI_protocol) protocol.
 
 **time** | **action**        | **core1**             | **core2**          |
@@ -49,9 +40,9 @@ The sequence can be illustrated below, assuming the [MESI](https://en.wikipedia.
 3        | core2: write b++  | invalid, a:1, b:1     | exclusive, a:1, b:2|
 4        | core1: read a     | shared, a:1, b:2      | shared, a:1, b:1   |
 
-Note that between `t = 1` and `t = 2`, core 2's value of `b` does not change, meaning it went all the way to memory to fetch the same value it already had.
-Even if `b` is present in the shared L3 cache, it is still ~12x slower than L1.
-Reading from memory would be 50x slower.
+Note that between `t = 1` and `t = 2`, core 2's value of `b` does not change, meaning it went all the way to L2 to fetch the same value it already had in L1.
+Even if `b` is present in the shared L2 cache, it still takes around 10 cycles, compared to ~4 cycles for L1.
+Reading from memory would take 200 cycles.
 
 ### Demo
 Let's see how false sharing can impact your program in practice.
@@ -134,4 +125,6 @@ We're now down to ~6s, which compared to 18s is a 3x improvement!
 
 You can see that our latency now does not scale with the number of threads (the small increase is probably due to the small overhead of starting the thread).
 You can try bumping up the number of variables and threads to verify that the time remains roughly constant.
-Unfortunately my machine only has 2 cores.
+
+---
+[^1]: You can view the topology of your system with a neat little tool called [lstopo](https://linux.die.net/man/1/lstopo) e.g. `lstopo --of ascii`
