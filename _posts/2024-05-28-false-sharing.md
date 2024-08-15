@@ -44,8 +44,8 @@ Note that between `t = 1` and `t = 2`, core 2's value of `b` does not change, me
 Even if `b` is present in the shared L2 cache, it still takes around 10 cycles, compared to ~4 cycles for L1.
 Reading from memory would take 200 cycles.
 
-Notice that in the above example, the shared L2 cache acts like a backstop for the extra traffic we incurred, preventing us from moving further up the memory hierarchy and wasting more cycles.
-If we had _per core_ L2 caches, or if our two cores happened to not share the same L2 cache, the false sharing problem would continue to propogate until we find a common storage layer, either L3 or main memory.
+Notice that in the above example, the shared L2 cache acts like a backstop for the extra traffic we incurred, preventing us from moving further down the memory hierarchy and wasting more cycles.
+If we had _per core_ L2 caches, or if our two cores happened to have _individual_ L2 cache, the false sharing problem would continue to propogate until we find a common storage layer, either L3 or main memory.
 
 ### Demo
 Let's see how false sharing can impact your program in practice.
