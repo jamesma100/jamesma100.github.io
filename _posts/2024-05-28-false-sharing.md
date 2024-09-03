@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "False sharing"
+title: "False sharing in practice"
 ---
 
 Over the past years, the trend in storage speed can be summarised as: faster CPUs with DRAM unable to keep up, resulting in a widening CPU/memory gap.

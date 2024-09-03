@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "x86 calling convention"
+title: "Overview of the x86 call stack"
 ---
 
 I had mostly forgotten how the x86 call stack works, and many things continue to confuse me, so join me and my scattered thoughts as I attempt to clarify my understanding.
