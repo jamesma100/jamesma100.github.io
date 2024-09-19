@@ -1,8 +1,8 @@
 ---
 layout: post
-title: "Backpropogation from scratch: Part I - introduction"
+title: "Backpropogation from scratch: Part I"
 ---
-Most sizable neural networks today rely on backpropogation to make the training process more efficient.
+Most sizable neural networks today rely on [backpropogation](https://en.wikipedia.org/wiki/Backpropagation) to make the training process more efficient.
 While backpropogation is pretty ubiquitous in libraries such as [torch.autograd](https://pytorch.org/tutorials/beginner/blitz/autograd_tutorial.html), I was curious how difficult it would be to implement it myself without using existing helpers.
 Turns out: not that difficult, and can be done with <100 lines of Python!
 
