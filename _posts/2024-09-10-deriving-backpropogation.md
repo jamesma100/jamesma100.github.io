@@ -24,6 +24,8 @@ Each layer $$l$$ of neurons:
 3. applies an activation function $$\sigma()$$
 4. then finally, passes the output to the next layer $$l+1$$
 
+This type of neural network, where information flows in only one direction - from the input layer to the output layer - is called a [feedforward neural network](https://en.wikipedia.org/wiki/Feedforward_neural_network).
+
 The "training process", then, consists of finding the optimal weights and biases in the network such that some cost function is minimized.
 The cost function can be seen as how _poorly_ the network performs, so lower is better.
 The hope is that given enough training data and iterations, we can reduce the cost function to a minimum, which by extension means the network will do a pretty good job of predicting an output.
@@ -105,6 +107,14 @@ $$
 \end{align}
 $$
 
+where $$\delta_L$$ is
+
+$$
+\begin{align}
+\delta_L = (x_l - y)\odot \sigma'(W_La_{L-1})
+\end{align}
+$$
+
 Intuitively, $$\delta_l$$ represents the "error," or how sensitive the output of the cost function is in terms of the current layer's weighted input $$z_l$$.
 If this value is large, that means the cost can be significantly reduced given a small change in the weighted input, so the weighted input $$z_l$$ is pretty far off from the desired value.
 Conversely, a small $$\delta$$ means we can't reduce the cost much more, and thus it is close to the desired value.
@@ -127,19 +137,20 @@ $$
 \end{align}
 $$
 
-where the error for the output layer is:
 
-$$
-\begin{align}
-\delta_L = (x_l - y)\odot \sigma'(W_La_{L-1})
-\end{align}
-$$
-
-while the error for every other hidden layer is:
+So the error for every other hidden layer is:
 
 $$
 \begin{align}
 \delta_l = (W_{i+1})^T\delta_{i+1}\odot \sigma'(W_la_{l-1}).
+\end{align}
+$$
+
+where the derivative of the sigmoid function is conveniently:
+
+$$
+\begin{align}
+\sigma'(x) &= x(1 - x)\\
 \end{align}
 $$
 
@@ -149,13 +160,6 @@ So instead of iterating through the entire network each time for every layer, we
 In algorithm design, this technique is known as [dynamic programming](https://en.wikipedia.org/wiki/Dynamic_programming).
 
 
-where the derivative of the sigmoid function is conveniently:
-
-$$
-\begin{align}
-\sigma'(x) &= x(1 - x)\\
-\end{align}
-$$
 
 Another thing to note is that the use of the activations $$a_{l-1}$$ means that during the forward pass, these values must be calculated in advance and cached.
 
