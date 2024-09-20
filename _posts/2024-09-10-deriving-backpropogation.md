@@ -37,7 +37,7 @@ Below is some notation to formalize this idea.
 * $$W_l$$: weight matrix of layer $$l$$ where $$w^l_{ij}$$ is the weight of the connection between the $$i$$th neuron of layer $$l$$ and the $$j$$th neuron of layer $$l-1$$. This is a matrix with size $$n \times m$$, where $$n$$ is the number of neurons in the current layer and $$m$$ is the number of inputs to the current layer.
 * $$z_l$$: the weighted sum of all inputs into layer $$l$$. This is a vector with number of rows = number of neurons in layer $$l$$.
 * $$a_l$$: the activation of layer $$l$$, equal to $$\sigma(z_l)$$. This is a vector with number of rows = number of neurons in layer $$l$$.
-* $$C()$$: cost function. In this example we'll use the [mean squared error](https://en.wikipedia.org/wiki/Mean_squared_error): $$\begin{align}\frac{1}{n}\sum_{i=1}^n(y_i - \hat{y_i})^2\end{align}$$ where $$y_i$$ is the training sample and $$\hat{y_i}$$ is the predicted value.
+* $$C()$$: cost function. In this example we'll use the [mean squared error](https://en.wikipedia.org/wiki/Mean_squared_error): $$\begin{align}\frac{1}{2n}\sum_{i=1}^n(y_i - \hat{y_i})^2\end{align}$$ where $$y_i$$ is the training sample and $$\hat{y_i}$$ is the predicted value.
 * $$\sigma()$$: activation function. In this example we'll use the sigmoid function, defined as $$\begin{align}\sigma(x) = \frac{1}{1 + e^{-x}}\end{align}$$.
 
 But how do we adjust the weights and biases?
@@ -75,7 +75,7 @@ This process is repeated until the final activation $$a_L$$ is passed to the cos
 $$\begin{align}
 z_l &= W_la_{l-1}\\
 a_l &= \sigma(z_l)\\
-C(a_L) &= \sum_{i=1}^{n}(a_L - y_i)^2\\
+C(a_L) &= \sum_{i=1}^{n}\frac{1}{2}(a_L - y_i)^2\\
 \end{align}$$
 
 Deriving $$\begin{align}\frac{\partial C}{\partial W_L}\end{align}$$ for output layer is thus:
@@ -83,7 +83,7 @@ $$
 \begin{align}
   \tag{1.1}
   \frac{\partial C}{\partial W_L} &= \frac{\partial C}{\partial a_L}\frac{\partial a_L}{\partial z_L}\frac{\partial z_L}{\partial w_L}\\
-  &= \frac{\partial}{\partial a_L}(a_L - y)^2 \odot \sigma'(z_L) \frac{\partial z_L}{\partial W_L}\\
+  &= \frac{\partial}{\partial a_L}\frac{1}{2}(a_L - y)^2 \odot \sigma'(z_L) \frac{\partial z_L}{\partial W_L}\\
 \end{align}
 $$
 
@@ -111,7 +111,7 @@ where $$\delta_L$$ is
 
 $$
 \begin{align}
-\delta_L = (x_l - y)\odot \sigma'(W_La_{L-1})
+\delta_L = (a_L - y)\odot \sigma'(W_La_{L-1})
 \end{align}
 $$
 
@@ -184,7 +184,7 @@ W_l = W_l - \alpha\frac{\partial C}{\partial W_l}
 \end{align}
 $$
 where
-$$ \begin{align}\frac{\partial C}{\partial W_l} = \delta_L(a_{L-1})^T\end{align}$$ when $$l = L$$ and $$\begin{align}\frac{\partial C}{\partial W_l} = \delta_l(a_{l-1})^T\end{align}$$ otherwise. For the sigmoid function, $$\begin{align}\delta_L = (x_l - y)\odot W_La_{L-1}(1 - W_La_{L-1})\end{align}$$ for the output layer and $$\begin{align}\delta_l = (W_{i+1})^T\delta_{i+1}\odot W_la_{l-1}(1 - W_la_{l-1})\end{align}$$ for each hidden layer $$l$$.
+$$ \begin{align}\frac{\partial C}{\partial W_l} = \delta_L(a_{L-1})^T\end{align}$$ when $$l = L$$ and $$\begin{align}\frac{\partial C}{\partial W_l} = \delta_l(a_{l-1})^T\end{align}$$ otherwise. For the sigmoid function, $$\begin{align}\delta_L = (a_L - y)\odot W_La_{L-1}(1 - W_La_{L-1})\end{align}$$ for the output layer and $$\begin{align}\delta_l = (W_{i+1})^T\delta_{i+1}\odot W_la_{l-1}(1 - W_la_{l-1})\end{align}$$ for each hidden layer $$l$$.
 3. Similarly, we update the bias term via $$b_l = b_l - \alpha \delta_l$$.
 4. Repeat the above steps for a large number of iterations until the cost is sufficiently small.
 
