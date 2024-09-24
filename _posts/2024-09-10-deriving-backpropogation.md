@@ -37,7 +37,7 @@ Below is some notation to formalize this idea.
 * $$W_l$$: weight matrix of layer $$l$$ where $$w^l_{ij}$$ is the weight of the connection between the $$i$$th neuron of layer $$l$$ and the $$j$$th neuron of layer $$l-1$$. This is a matrix with size $$n \times m$$, where $$n$$ is the number of neurons in the current layer and $$m$$ is the number of inputs to the current layer.
 * $$z_l$$: the weighted sum of all inputs into layer $$l$$. This is a vector with number of rows = number of neurons in layer $$l$$.
 * $$a_l$$: the activation of layer $$l$$, equal to $$\sigma(z_l)$$. This is a vector with number of rows = number of neurons in layer $$l$$.
-* $$C()$$: cost function. In this example we'll use the [mean squared error](https://en.wikipedia.org/wiki/Mean_squared_error): $$\begin{align}\frac{1}{2n}\sum_{i=1}^n(y_i - \hat{y_i})^2\end{align}$$ where $$y_i$$ is the training sample and $$\hat{y_i}$$ is the predicted value.
+* $$C()$$: cost function. For a single training sample, we'll use $$\begin{align}\frac{1}{2}(y_i - \hat{y_i})^2\end{align}$$ where $$y_i$$ is the training sample and $$\hat{y_i}$$ is the predicted value. For multiple training samples $$n$$, we'll use the [mean squared error](https://en.wikipedia.org/wiki/Mean_squared_error), defined as $$\begin{align}\frac{1}{2n}\sum_{i=1}^n(y_i - \hat{y_i})^2\end{align}$$.
 * $$\sigma()$$: activation function. In this example we'll use the sigmoid function, defined as $$\begin{align}\sigma(x) = \frac{1}{1 + e^{-x}}\end{align}$$.
 
 But how do we adjust the weights and biases?
@@ -75,7 +75,7 @@ This process is repeated until the final activation $$a_L$$ is passed to the cos
 $$\begin{align}
 z_l &= W_la_{l-1}\\
 a_l &= \sigma(z_l)\\
-C(a_L) &= \sum_{i=1}^{n}\frac{1}{2}(a_L - y_i)^2\\
+C(a_L) &= \frac{1}{2}(a_{L} - y)^2\\
 \end{align}$$
 
 Deriving $$\begin{align}\frac{\partial C}{\partial W_L}\end{align}$$ for output layer is thus:
@@ -83,17 +83,18 @@ $$
 \begin{align}
   \tag{1.1}
   \frac{\partial C}{\partial W_L} &= \frac{\partial C}{\partial a_L}\frac{\partial a_L}{\partial z_L}\frac{\partial z_L}{\partial w_L}\\
-  &= \frac{\partial}{\partial a_L}\frac{1}{2}(a_L - y)^2 \odot \sigma'(z_L) \frac{\partial z_L}{\partial W_L}\\
+  &= \frac{\partial}{\partial a_{L}}\frac{1}{2}(a_{L} - y)^2 \odot \sigma'(z_L) \frac{\partial z_L}{\partial W_L}\\
+  &= (a_L - y) \odot \sigma'(z_L) \frac{\partial z_L}{\partial W_L}\\
 \end{align}
 $$
 
-where $$\odot$$ is the element-wise product, or [Hadamard product](https://en.wikipedia.org/wiki/Hadamard_product_(matrices)), as opposed to regular matrix multiplication.
+where $$\odot$$ is the element-wise product, or [Hadamard product](https://en.wikipedia.org/wiki/Hadamard_product_(matrices)), as opposed to regular matrix product.
 
 Here we can simplify our notation by defining a new value, $$\delta_l$$, as the partial derivative of the cost in terms of our weighted input $$z_l$$:
 
 $$
 \begin{align}
-\delta_l &= \frac{\partial C}{\partial z_L}\\
+\delta_l = \frac{\partial C}{\partial z_L} = (a_L - y) \odot \sigma'(z_L)\\
 \end{align}
 $$
 
@@ -111,7 +112,16 @@ where $$\delta_L$$ is
 
 $$
 \begin{align}
-\delta_L = (a_L - y)\odot \sigma'(W_La_{L-1})
+\delta_L &= \frac{\partial C}{\partial a_L}\frac{\partial a_L}{\partial z_L}\\
+&= (a_L - y)\odot \sigma'(W_La_{L-1})
+\end{align}
+$$
+
+where the derivative of the sigmoid function is conveniently:
+
+$$
+\begin{align}
+\sigma'(x) &= x(1 - x)\\
 \end{align}
 $$
 
@@ -142,17 +152,10 @@ So the error for every other hidden layer is:
 
 $$
 \begin{align}
-\delta_l = (W_{i+1})^T\delta_{i+1}\odot \sigma'(W_la_{l-1}).
+\delta_l = (W_{l+1})^T\delta_{l+1}\odot \sigma'(W_la_{l-1}).
 \end{align}
 $$
 
-where the derivative of the sigmoid function is conveniently:
-
-$$
-\begin{align}
-\sigma'(x) &= x(1 - x)\\
-\end{align}
-$$
 
 To recap, we started out with a long chain of calculations in Equation 1.2 that can be costly to compute.
 We then rewrote it in terms of the error term $$\delta_l$$, which we discovered depends on that of the next layer $$\delta_{l+1}$$.
@@ -175,18 +178,20 @@ $$
 $$
 
 ### Summary of steps
-Now that we have all the pieces, we have a formula for training a neural network using backpropogation!
+Now that we have all the pieces, we have a algorithm for training a neural network using backpropogation!
 To summarize:
-1. For each training sample, forward the input through the network and arrive at a cost, saving the intermediate activations along the way.
-2. To reduce that cost, we backpropogate the error term from the last layer to the first layer. Each time, we use the error to update the weights at each layer. That is, 
-$$\begin{align}
-W_l = W_l - \alpha\frac{\partial C}{\partial W_l}
-\end{align}
-$$
-where
-$$ \begin{align}\frac{\partial C}{\partial W_l} = \delta_L(a_{L-1})^T\end{align}$$ when $$l = L$$ and $$\begin{align}\frac{\partial C}{\partial W_l} = \delta_l(a_{l-1})^T\end{align}$$ otherwise. For the sigmoid function, $$\begin{align}\delta_L = (a_L - y)\odot W_La_{L-1}(1 - W_La_{L-1})\end{align}$$ for the output layer and $$\begin{align}\delta_l = (W_{i+1})^T\delta_{i+1}\odot W_la_{l-1}(1 - W_la_{l-1})\end{align}$$ for each hidden layer $$l$$.
-3. Similarly, we update the bias term via $$b_l = b_l - \alpha \delta_l$$.
-4. Repeat the above steps for a large number of iterations until the cost is sufficiently small.
+- For each of $$n$$ training samples:
+    - Forward the input through the network and arrive at a cost, saving the intermediate activations along the way.
+    - Backpropogate the error term from the last layer to the first layer, i.e. $$\begin{align}\delta_L = (a_L - y)\odot W_La_{L-1}(1 - W_La_{L-1})\end{align}$$ for the output layer $$L$$ and $$\begin{align}\delta_l = (W_{l+1})^T\delta_{l+1}\odot W_la_{l-1}(1 - W_la_{l-1})\end{align}$$ for each hidden layer $$l$$.
+- To reduce the cost, we can use the errors and activations we saved to find the gradient of the cost function with respect to the weights at each layer, then shift the weights in the opposite direction of the gradient. That is, 
+    $$\begin{align}
+    W_l = W_l - \alpha\frac{\partial C}{\partial W_l}
+    \end{align}
+    $$
+    where
+    $$ \begin{align}\frac{\partial C}{\partial W_l} = \frac{1}{n}\sum_{i=1}^{n}\delta_{i,l}(a_{i, l-1})^T\end{align}$$. Note why we're including a sum - we have a vector of activations and a vector of errors _per_ training sample, so to calculate a weight update over _all_ training samples we simply take the average. 
+- Similarly, we update the bias term via $$\begin{align}b_l = b_l - \frac{\alpha}{n} \sum_{i=1}^n\delta_{i,l}\end{align}$$.
+- Repeat the above steps for a large number of iterations until the cost is sufficiently small.
 
 And that is it! Hopefully that gives us some insight into a key piece of machinery that powers modern deep learning.
 In the next part of this series, we'll implement a simple neural network in Python using the backpropogation algorithm we just derived. Stay tuned!
