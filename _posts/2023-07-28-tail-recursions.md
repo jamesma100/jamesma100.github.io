@@ -7,7 +7,7 @@ I've been writing a bit of Scala lately. In particular, challenging myself to us
 
 For instance, take this method that reverses a list:
 
-```
+```scala
 // Simple recursive
 def reverse1[A](li: List[A]): List[A] = {
   li match {
@@ -20,7 +20,7 @@ def reverse1[A](li: List[A]): List[A] = {
 
 Since cycling through a list like this produces a stack frame allocation per recursive call, we get a nasty O(n^2) memory usage. But only because we are preserving some current state, i.e. the very last `:+ x`. If we somehow get rid of that, the compiler would no longer need the current frame, and can thus recycle it to be used by the next recursive call. This is known as [tail recursion](https://en.wikipedia.org/wiki/Tail_call), and it can be used if you want recursion but with low memory overhead. We can factor the preceding method to the following:
 
-```
+```scala
 // Tail recursive
 def reverse2[A](li: List[A]): List[A] = {
   def reverseTail(li: List[A], solution: List[A]): List[A] = {
@@ -41,7 +41,7 @@ As shown, a simple refactoring of the original solution to use tail recursion im
 
 P.S. the proper way to do this functionally is not actually with recursion, but with a `foldLeft` or `foldRight`. Namely:
 
-```
+```scala
 // Fold
 def reverse3[A](li: List[A]): List[A] = {
   li.foldRight(Nil) {

@@ -52,7 +52,7 @@ Let's see how false sharing can impact your program in practice.
 First, we allocate a struct with two variables `a` and `b`.
 Since they are contiguous in memory, we can expect them to reside on the same cache line.
 Then, we create a function that updates either `a` or `b` a large number of times.
-```
+```c
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
@@ -79,7 +79,7 @@ void *increment(void *var) {
 }
 ```
 Here is the main method that creates one thread which updates `a` 3 billion times.
-```
+```c
 int main() {
   pthread_t ta;
   pthread_create(&ta, NULL, increment, (void*)"a");
@@ -89,7 +89,7 @@ int main() {
 ```
 
 Running the above code and `time`'ing it takes a little under 6s:
-```
+```bash
 $ gcc main.c -o main && time ./main
 
 real	0m5.662s
@@ -101,7 +101,7 @@ What if we add a second thread that does the same to `b`?
 Since thread 1 updates `a` and thread 2 updates `b`, we should expect the time to remain the same, as we can utilise two cores in parallel.
 Our main method now looks like this:
 
-```
+```c
 int main() {
   pthread_t ta;
   pthread_t tb;
@@ -117,7 +117,7 @@ This is because we're seeing false sharing in action!
 
 To resolve this issue, we can pad the struct, making sure that the two variables reside at least 64 bytes apart.
 So here we need 60 bytes of padding, which can be done with 7 doubles and an additional int.
-```
+```c
 typedef struct {
   int a; // 4
   double d1,d2,d3,d4,d5,d6,d7; // 56
@@ -128,7 +128,7 @@ typedef struct {
 FooPadded foo_padded = {0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0, 0};
 ```
 Running a single thread takes around the same time as before (~5.4s), but with two threads:
-```
+```bash
 $ gcc main.c -o main && time ./main
 
 real	0m6.493s

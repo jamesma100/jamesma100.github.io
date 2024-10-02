@@ -7,7 +7,7 @@ I had mostly forgotten how the x86 call stack works, and many things continue to
 
 In this post, we will look at a simple assembly program that takes in an integer and calculates the sum of all integers from 1 to `n`, then exits with the result as the return code. In essence:
 
-```
+```c
 int sum_to(int n) {
     int sum = 0;
     int i = n;

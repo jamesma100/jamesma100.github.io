@@ -43,7 +43,7 @@ Let's see how we would interpret some Brainfuck code.
 
 To start, we need two main data structures: one to represent the program's memory, and another to represent the instructions we are executing.
 
-```
+```c
 typedef struct {
   int *head;              // beginning of memory segment
   int *data;              // data in our memory
@@ -63,7 +63,7 @@ typedef struct {
 Note that we're using a 2d array to represent the instructions for easier access and parsing.
 So the instruction in row `i` and column `j` can be retrieved with `instructions->data[i][j]`.
 Next, we initialize them as follows:
-```
+```c
 void init_memory(Memory *mem, size_t initial_size) {
   mem->data = (int*)malloc(initial_size * sizeof(int));
   mem->head = mem->data;
@@ -103,7 +103,7 @@ Now, to interpret the source code stored in some initialized `Instructions` stru
 
 
 To check each instruction, we might do something like this:
-```
+```c
 switch(instruction) {
   case '<':
     left(&mem);
@@ -120,7 +120,7 @@ switch(instruction) {
 where `mem` is some initialized `Memory` struct.
 Notice that for each instruction, we just map it to an equivalent C function and call it.
 For instance, here is the `inc` instruction referenced above:
-```
+```c
 void inc(Memory *mem) {
   (*mem->ptr)++;
 }
@@ -135,7 +135,7 @@ We are instead creating a chunk of executable memory, then executing that memory
 
 To make this more concrete, let's look at how we might implement a JIT variant of the same `inc()` function we saw earlier, which we will call `inc_jit()`.
 We will need to allocate some executable memory (we'll use `mmap` to map a page), copy the machine code for `inc()` into the mapped page, then execute that memory directly.
-```
+```c
 typedef int (*incFuncPtr)(int); // function pointer typedef that
                                 // takes an int and returns an int
 
@@ -167,7 +167,7 @@ void inc_jit(Memory *mem) {
 ```
 All this work for a single add instruction!
 Reminder that our original `inc()` function is only:
-```
+```c
 void inc(Memory *mem) {
   (*mem->ptr)++;
 }
