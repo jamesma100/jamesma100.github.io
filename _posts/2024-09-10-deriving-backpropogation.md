@@ -1,10 +1,10 @@
 ---
 layout: post
-title: "Backpropogation from scratch: Part I"
+title: "Deriving backpropogation from scratch"
 ---
 Most sizable neural networks today rely on [backpropogation](https://en.wikipedia.org/wiki/Backpropagation) to make the training process more efficient.
 While backpropogation is pretty ubiquitous in libraries such as [torch.autograd](https://pytorch.org/tutorials/beginner/blitz/autograd_tutorial.html), I was curious how difficult it would be to implement it myself without using existing helpers.
-Turns out: not that difficult, and can be done with <100 lines of Python!
+Turns out: not that difficult, and can be done with ~200 lines of Python!
 
 In this two-part blog post, we'll derive backpropogation from scratch, implement it, and use it to train a simple neural network.
 Crucially, for learning purposes, we won't be using libraries like Torch or autodiff; rather, we will use only vanilla Python and numpy for matrix operations.
@@ -81,49 +81,50 @@ C(a_L) &= \frac{1}{2}(a_{L} - y)^2\\
 Deriving $$\begin{align}\frac{\partial C}{\partial W_L}\end{align}$$ for output layer is thus:
 $$
 \begin{align}
-  \tag{1.1}
   \frac{\partial C}{\partial W_L} &= \frac{\partial C}{\partial a_L}\frac{\partial a_L}{\partial z_L}\frac{\partial z_L}{\partial w_L}\\
   &= \frac{\partial}{\partial a_{L}}\frac{1}{2}(a_{L} - y)^2 \odot \sigma'(z_L) \frac{\partial z_L}{\partial W_L}\\
+  \tag{1.1}
   &= (a_L - y) \odot \sigma'(z_L) \frac{\partial z_L}{\partial W_L}\\
 \end{align}
 $$
 
-where $$\odot$$ is the element-wise product, or [Hadamard product](https://en.wikipedia.org/wiki/Hadamard_product_(matrices)), as opposed to regular matrix product.
-
-Here we can simplify our notation by defining a new value, $$\delta_l$$, as the partial derivative of the cost in terms of our weighted input $$z_l$$:
-
-$$
-\begin{align}
-\delta_l = \frac{\partial C}{\partial z_L} = (a_L - y) \odot \sigma'(z_L)\\
-\end{align}
-$$
-
-So then we get:
-
-$$
-\begin{align}
-  \frac{\partial C}{\partial W_l} &= \delta_L\frac{\partial z_L}{\partial W_L}\\
-  &= \delta_L\frac{\partial (W_La_{L-1})}{\partial W_L}\\
-  &= \delta_L(a_{L-1})^T
-\end{align}
-$$
-
-where $$\delta_L$$ is
-
-$$
-\begin{align}
-\delta_L &= \frac{\partial C}{\partial a_L}\frac{\partial a_L}{\partial z_L}\\
-&= (a_L - y)\odot \sigma'(W_La_{L-1})
-\end{align}
-$$
-
-where the derivative of the sigmoid function is conveniently:
+where $$\odot$$ is the element-wise product, or [Hadamard product](https://en.wikipedia.org/wiki/Hadamard_product_(matrices)), as opposed to regular matrix product. The derivative of the sigmoid function $$\sigma'(x)$$ is conveniently:
 
 $$
 \begin{align}
 \sigma'(x) &= x(1 - x)\\
 \end{align}
 $$
+
+Here we can simplify our notation by defining a new value, $$\delta_l$$, as the partial derivative of the cost in terms of our weighted input $$z_l$$:
+
+$$
+\begin{align}
+\delta_l = \frac{\partial C}{\partial z_l}
+\end{align}
+$$
+
+So for our output layer $$L$$:
+
+$$
+\begin{align}
+\delta_L = \frac{\partial C}{\partial z_L} = (a_L - y) \odot \sigma'(z_L)\\
+\end{align}
+$$
+
+We can now substitute $$\delta_L$$ into Equation 1.1:
+
+$$
+\begin{align}
+  \frac{\partial C}{\partial W_l} &= \delta_L\frac{\partial z_L}{\partial W_L}\\
+  &= \delta_L\frac{\partial (W_La_{L-1})}{\partial W_L}\\
+  \tag{1.2}
+  &= \delta_L(a_{L-1})^T
+\end{align}
+$$
+
+Observe that $$\delta_L$$ and $$a_{L-1}$$ are vectors of equal dimensions, so we take the transpose of the latter to get an inner product.
+
 
 Intuitively, $$\delta_l$$ represents the "error," or how sensitive the output of the cost function is in terms of the current layer's weighted input $$z_l$$.
 If this value is large, that means the cost can be significantly reduced given a small change in the weighted input, so the weighted input $$z_l$$ is pretty far off from the desired value.
@@ -135,36 +136,41 @@ But essentially it is a repeated application of the chain rule from some $$W_l$$
 
 $$
 \begin{align}
-  \tag{1.2}
+  \tag{2.1}
   \frac{\partial C}{\partial W_l} &= \frac{\partial C}{\partial a_L}\frac{\partial a_L}{\partial z_L}\frac{\partial z_L}{\partial W_L}\frac{\partial W_L}{\partial a_{L-1}}\frac{\partial a_{L-1}}{\partial z_{L-1}}\frac{\partial z_{L-1}}{\partial W_{L-1}} ... \frac{\partial a_{l+1}}{\partial z_{l+1}}\frac{\partial z_{l+1}}{\partial W_{l+1}}\frac{\partial W_{l+1}}{\partial a_l}\frac{\partial a_l}{\partial z_l}\frac{\partial z_l}{\partial W_l}\\
-  &= \delta_{l+1}\frac{\partial z_{l+1}}{\partial W_{l+1}}\frac{\partial W_{l+1}}{\partial a_l}\frac{\partial a_l}{\partial z_l}\frac{\partial z_l}{\partial W_l}\\
-  &= W_l^T\delta_{l+1}\frac{\partial a_l}{\partial z_l}\frac{\partial z_l}{\partial W_l}\\
-  &= W_l^T\delta_{l+1}\frac{\partial \sigma(W_l a_{l-1})}{\partial z_l}\frac{\partial z_l}{\partial W_l}\\
-  &= W_l^T\delta_{l+1}\odot \sigma'(W_la_{l-1}) \frac{\partial z_l}{\partial W_l}\\
-  &= \delta_l \frac{\partial z_l}{\partial W_l}\\
+\end{align}$$
+
+Given our definition of the error term $$\delta_l$$ above, we can substitute $$\begin{align}\delta_{l+1} = \frac{\partial C}{\partial z_{l+1}}\end{align}$$:
+
+$$\begin{align}
+\tag{2.2}
+  \frac{\partial C}{\partial W_l} &= \delta_{l+1}\frac{\partial z_{l+1}}{\partial W_{l+1}}\frac{\partial W_{l+1}}{\partial a_l}\frac{\partial a_l}{\partial z_l}\frac{\partial z_l}{\partial W_l}\\
+  \tag{2.3}
+  &= W_{l+1}^T\delta_{l+1}\frac{\partial a_l}{\partial z_l}\frac{\partial z_l}{\partial W_l}\\
+  \tag{2.4}
+  &= W_{l+1}^T\delta_{l+1}\frac{\partial \sigma(W_l a_{l-1})}{\partial z_l}\frac{\partial z_l}{\partial W_l}\\
+  \tag{2.5}
+  &= W_{l+1}^T\delta_{l+1}\odot \sigma'(W_la_{l-1}) \frac{\partial z_l}{\partial W_l}\\
+  \end{align}$$
+
+  Alas, we arrive at the key insight of backpropogation. if you compare Equations 2.5 and 2.1, you'll notice that the entire term $$\begin{align}W_{l+1}^T\delta_{l+1}\odot \sigma'(W_la_{l-1})\end{align}$$ is simply $$\begin{align}\frac{\partial C}{\partial z_l}\end{align}$$, which is exactly the definition of the error term $$\delta_l$$! 
+
+What this means is that each error term $$\delta_l$$ is defined _in terms of_ its successor $$\delta_{l+1}$$. So instead of calculating the entire gradient directly, we can start at the output layer and move backward, saving the error each time so it can be used by the previous layer on the next iteration.
+In algorithm design, this technique is known as [dynamic programming](https://en.wikipedia.org/wiki/Dynamic_programming), and it allows us to avoid unnecessary computations.
+
+Finishing up our derivation:
+  
+  $$\begin{align}
+  \tag{2.6}
+  \frac{\delta C}{\delta w_l}&= \delta_l \frac{\partial z_l}{\partial W_l}\\
+  \tag{2.7}
   &= \delta_l \frac{\partial (W_La_{l-1})}{\partial W_l}\\
+  \tag{2.8}
   &= \delta_l (a_{l-1})^T\\
 \end{align}
 $$
 
-
-So the error for every other hidden layer is:
-
-$$
-\begin{align}
-\delta_l = (W_{l+1})^T\delta_{l+1}\odot \sigma'(W_la_{l-1}).
-\end{align}
-$$
-
-
-To recap, we started out with a long chain of calculations in Equation 1.2 that can be costly to compute.
-We then rewrote it in terms of the error term $$\delta_l$$, which we discovered depends on that of the next layer $$\delta_{l+1}$$.
-So instead of iterating through the entire network each time for every layer, we can start at the output layer and move backward, saving the error each time so it can be used by the previous layer on the next iteration.
-In algorithm design, this technique is known as [dynamic programming](https://en.wikipedia.org/wiki/Dynamic_programming).
-
-
-
-Another thing to note is that the use of the activations $$a_{l-1}$$ means that during the forward pass, these values must be calculated in advance and cached.
+Last thing to note is that the use of the activations $$a_{l-1}$$ means that during the forward pass, these values must be calculated in advance and cached.
 
 ### Bias updates
 Using the above derivation, finding the bias update is much simpler.
@@ -193,5 +199,4 @@ To summarize:
 - Similarly, we update the bias term via $$\begin{align}b_l = b_l - \frac{\alpha}{n} \sum_{i=1}^n\delta_{i,l}\end{align}$$.
 - Repeat the above steps for a large number of iterations until the cost is sufficiently small.
 
-And that is it! Hopefully that gives us some insight into a key piece of machinery that powers modern deep learning.
-In the next part of this series, we'll implement a simple neural network in Python using the backpropogation algorithm we just derived. Stay tuned!
+And that is it! Hopefully that gives us some insight into a key piece of machinery that powers modern deep learning. In the next part of this series, we'll implement a simple neural network in Python using the backpropogation algorithm we just derived.
