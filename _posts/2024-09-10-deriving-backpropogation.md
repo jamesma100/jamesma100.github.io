@@ -108,6 +108,7 @@ So for our output layer $$L$$:
 
 $$
 \begin{align}
+\tag{2.1}
 \delta_L = \frac{\partial C}{\partial z_L} = (a_L - y) \odot \sigma'(z_L)\\
 \end{align}
 $$
@@ -136,36 +137,38 @@ But essentially it is a repeated application of the chain rule from some $$W_l$$
 
 $$
 \begin{align}
-  \tag{2.1}
+  \tag{3.1}
   \frac{\partial C}{\partial W_l} &= \frac{\partial C}{\partial a_L}\frac{\partial a_L}{\partial z_L}\frac{\partial z_L}{\partial W_L}\frac{\partial W_L}{\partial a_{L-1}}\frac{\partial a_{L-1}}{\partial z_{L-1}}\frac{\partial z_{L-1}}{\partial W_{L-1}} ... \frac{\partial a_{l+1}}{\partial z_{l+1}}\frac{\partial z_{l+1}}{\partial W_{l+1}}\frac{\partial W_{l+1}}{\partial a_l}\frac{\partial a_l}{\partial z_l}\frac{\partial z_l}{\partial W_l}\\
 \end{align}$$
 
 Given our definition of the error term $$\delta_l$$ above, we can substitute $$\begin{align}\delta_{l+1} = \frac{\partial C}{\partial z_{l+1}}\end{align}$$:
 
 $$\begin{align}
-\tag{2.2}
+\tag{3.2}
   \frac{\partial C}{\partial W_l} &= \delta_{l+1}\frac{\partial z_{l+1}}{\partial W_{l+1}}\frac{\partial W_{l+1}}{\partial a_l}\frac{\partial a_l}{\partial z_l}\frac{\partial z_l}{\partial W_l}\\
-  \tag{2.3}
+  \tag{3.3}
   &= W_{l+1}^T\delta_{l+1}\frac{\partial a_l}{\partial z_l}\frac{\partial z_l}{\partial W_l}\\
-  \tag{2.4}
+  \tag{3.4}
   &= W_{l+1}^T\delta_{l+1}\frac{\partial \sigma(W_l a_{l-1})}{\partial z_l}\frac{\partial z_l}{\partial W_l}\\
-  \tag{2.5}
+  \tag{3.5}
   &= W_{l+1}^T\delta_{l+1}\odot \sigma'(W_la_{l-1}) \frac{\partial z_l}{\partial W_l}\\
   \end{align}$$
 
-  Alas, we arrive at the key insight of backpropogation. if you compare Equations 2.5 and 2.1, you'll notice that the entire term $$\begin{align}W_{l+1}^T\delta_{l+1}\odot \sigma'(W_la_{l-1})\end{align}$$ is simply $$\begin{align}\frac{\partial C}{\partial z_l}\end{align}$$, which is exactly the definition of the error term $$\delta_l$$! 
+  Alas, we arrive at the key insight of backpropogation. If you compare Equations 3.5 and 3.1, you'll notice that the entire term $$\begin{align}W_{l+1}^T\delta_{l+1}\odot \sigma'(W_la_{l-1})\end{align}$$ is simply $$\begin{align}\frac{\partial C}{\partial z_l}\end{align}$$, which is exactly the definition of the error term $$\delta_l$$! 
+
+$$\tag{4.1}\begin{align}\delta_l = W_{l+1}^T\delta_{l+1}\odot \sigma'(W_la_{l-1})\end{align}$$
 
 What this means is that each error term $$\delta_l$$ is defined _in terms of_ its successor $$\delta_{l+1}$$. So instead of calculating the entire gradient directly, we can start at the output layer and move backward, saving the error each time so it can be used by the previous layer on the next iteration.
 In algorithm design, this technique is known as [dynamic programming](https://en.wikipedia.org/wiki/Dynamic_programming), and it allows us to avoid unnecessary computations.
 
-Finishing up our derivation:
+Finishing up our derivation and substituting in $$\delta_l$$:
   
   $$\begin{align}
-  \tag{2.6}
-  \frac{\delta C}{\delta w_l}&= \delta_l \frac{\partial z_l}{\partial W_l}\\
-  \tag{2.7}
+  \tag{3.6}
+  \frac{\delta C}{\delta W_l}&= \delta_l \frac{\partial z_l}{\partial W_l}\\
+  \tag{3.7}
   &= \delta_l \frac{\partial (W_La_{l-1})}{\partial W_l}\\
-  \tag{2.8}
+  \tag{3.8}
   &= \delta_l (a_{l-1})^T\\
 \end{align}
 $$
@@ -179,6 +182,7 @@ $$
 \begin{align}
 \frac{\partial C}{\partial b_l} &= \frac{\partial C}{\partial z_l}\frac{\partial z_l}{\partial b_l}\\
 &= \delta_l \frac{\partial(W_la_{l-1} + b_l)}{\partial b_l}\\
+\tag{5.1}
 &= \delta_l
 \end{align}
 $$
