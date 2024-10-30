@@ -47,7 +47,7 @@ Reading from memory would take 200 cycles.
 Notice that in the above example, the shared L2 cache acts like a backstop for the extra traffic we incurred, preventing us from moving further down the memory hierarchy and wasting more cycles.
 If we had _per core_ L2 caches, or if our two cores happened to be assigned to different L2 caches, the false sharing problem would continue to propogate until we find a common storage layer, either L3 or main memory.
 
-### Demo
+## Demo
 Let's see how false sharing can impact your program in practice.
 First, we allocate a struct with two variables `a` and `b`.
 Since they are contiguous in memory, we can expect them to reside on the same cache line.

@@ -32,7 +32,7 @@ In a practical scenario, we would want some sort of middle ground - replicate ev
 
 How Kafka does distributed consensus is rather interesting, so I wanted to take the time to discuss its approach and how it differs from more traditional models like Raft.
 
-### Leader re-election
+## Leader re-election
 Let's begin by examining a common problem - leader election.
 If the leader dies, we need to choose a new leader to take its place from a pool of qualified candidates.
 Ideally, we would like that pool to be large so we find a qualified candidate faster.
@@ -49,7 +49,7 @@ In general, given `n` replicas, the number of candidates to evaluate in the face
 A common approach is to require a _majority_ of replicas to be in sync with the leader; that is,  given `2n + 1` nodes, we require `n + 1` acknowledgements.
 Now, if the leader crashes and we go through a candidate pool of `n + 1` followers to choose a new leader, we are guaranteed to find one that is up to date as there will necessarily be an overlap.
 
-### Kafka and ISRs
+## Kafka and ISRs
 Kafka does not use a majority-based quorum, but rather hard-selects a list of what it calls ISRs (in-sync replicas).
 Every write request requires that it is replicated to all ISRs to be committed, and the number of ISRs is configurable via a user property `min.insync.replicas`.
 
@@ -70,7 +70,7 @@ Namely, to have `n + 1` in-sync replicas, we need at least `2n` _total_ replicas
 Usually, we can't afford to have that many total replicas, but if we reduce it, the number of in-sync replicas becomes unacceptably low.
 Using ISRs allows every system to dynamically navigate this tradeoff to fit its own requirements.
 
-### What if I choose a majority for my ISRs?
+## What if I choose a majority for my ISRs?
 Suppose we have `2n` replicas.
 How would choosing `n + 1` as our `min.insync.replicas` differ from a majority quorum approach, which would also require `n + 1` replicas to be in sync?
 
@@ -87,7 +87,7 @@ On the other hand, if we use a majority quorum, all 9 followers receive the repl
 
 In other words, using ISRs causes latency unpredictability as it depends on which specific ISRs are chosen and their response time, while using a majority quorum caps our latency by the fastest servers.
 
-### Client reads and split brains
+## Client reads and split brains
 Given that the leader always contains the most up-to-date date, can we be guaranteed that if as long as we route reads through the leader, clients will always get the latest data?
 The answer is no.
 
@@ -116,7 +116,7 @@ Even after it reconnects, the new leader would force it to overwrite its data to
 
 The key here is that a split brain can still occur despite ISRs and to choose the heartbeat window `zookeeper.session.timeout.ms` to be small such that such an event is unlikely to occur.
 
-### Handling inconsistencies
+## Handling inconsistencies
 When a leader crashes and a new leader is selected, there will often be inconsistencies between the new leader, the old leader, and the followers.
 Kafka prevents this by only choosing leaders from the ISR set, which is guaranteed to contain the latest committed entries.
 
@@ -132,7 +132,7 @@ Imagine the scenario with servers S0, S1 and S2 and with ISR = (S0, S1, S2).
 
 This is referred to as the last standing replica problem and was resolved by [KIP-966](https://cwiki.apache.org/confluence/display/KAFKA/KIP-966%3A+Eligible+Leader+Replicas).
 
-### A whirlwind tour of persistence
+## A whirlwind tour of persistence
 You may be wondering why it's possible that at step 2, `e7` was committed but not persisted to all the servers.
 Doesn't "committed" mean that the entry is stored on every ISR, or a majority of servers in the majority quorum case?
 
@@ -161,7 +161,7 @@ This is a rather absurd hypothetical, but the takeaway here is that the meaning 
 Going back to Kafka, we can see that the last replica standing issue can only occur because Kafka doesn't flush on every write, but rather relies on rollback and recovery after a crash.
 For more about crash consistency, check out this great [piece](https://queue.acm.org/detail.cfm?id=2801719) in which the authors (my university professors!) found a surprising number of bugs in modern applications.
 
-### Uncommitted inconsistencies
+## Uncommitted inconsistencies
 Note that so far we've only discussed inconsistencies of _committed_ data - uncommitted data can still be inconsistent.
 We saw this earlier with the split brain scenario, where a deposed leader still thinks its the leader and thus continues to serve writes, only to be overwritten when it rejoins the cluster.
 However, we don't consider this an inconsistency, despite the follower having data that the new leader does not.
@@ -194,6 +194,6 @@ time                           follower log
 In the above example, the leader starts from the latest entry at index 5, moving backwards in the log until it finds the latest common entry with the follower, namely the entry at index 1.
 It then moves forward and replaces entries 2 to 5 in the follower's log with its own entries.
 
-### Closing thoughts
+## Closing thoughts
 This post is already getting longer than I would like, and I think I've shed enough light on the many ways distributed systems can go awry and the tricks Kafka employ to deal with them.
 Though it's unlikely you'll ever need to worry about any of this, I think it's always interesting to understand a bit about what's going on behind the gates of abstraction.

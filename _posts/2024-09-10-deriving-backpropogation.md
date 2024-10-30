@@ -187,7 +187,7 @@ $$
 \end{align}
 $$
 
-### Summary of steps
+## Summary of steps
 Now that we have all the pieces, we have a algorithm for training a neural network using backpropogation!
 To summarize:
 - For each of $$n$$ training samples:
