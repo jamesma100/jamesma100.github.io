@@ -16,16 +16,31 @@ To visualise the whole tree, Bazel [recommends](https://bazel.build/query/guide#
 
 A hello-world tutorial looks like this:
 
-<img src="/assets/images/deps.svg" alt="bazel dependency graph" width="800"/>
+<img src="/assets/images/deps_rotated.svg" alt="bazel dependency graph" width="700"/>
 
 Can you imagine what this would look like for any sizable project?!
 
-To aid my own sanity, I wrote a little CLI tool called [bazelvis](https://github.com/jamesma100/bazelvis) that generates and parses the dependency graph, then displays it in a terminal UI layer by layer. 
-You can see all children of a given node by clicking on it, or go back to the parent.
+To aid my own sanity, I wrote a little CLI tool called [bazelvis](https://github.com/jamesma100/bazelvis) to visualize this dependency graph. All you need to do is clone the repo and run the included build script:
 
-<img src="https://github.com/jamesma100/bazelvis/assets/44740178/e7f913b5-8532-47d1-9163-429b7b2ecc7c" alt="bazelvis nav" width="800"/>
+```sh
+git clone https://github.com/jamesma100/bazelvis
+./build.sh
+```
+Then run the generated binary under `./bin/bazelvis` on any target of your choice in the same directory as your Bazel workspace.
 
-If you think about it, software dependencies are a directed acyclic graph, much alike a filesystem.
+Using the same C++ tutorial example as above:
+```sh
+git clone https://github.com/bazelbuild/examples
+cd examples/cpp-tutorial/stage3
+bazelvis bazelvis main:hello-world
+```
+
+<img src="/assets/images/bazelvis.gif" alt="bazelvis nav" width="800"/>
+
+You can see all children of a given node by selecting it and hitting enter, which will open up a new window. You can also go back to the parent by going to `../`.
+
+
+If you think about it, software dependencies are exactly a directed acyclic graph, much alike a filesystem.
 And this is exactly how you would traverse a filesystem in Vim if you open a directory instead of a file.
 
 Writing a simple terminal UI wasn't as bad as I thought.
