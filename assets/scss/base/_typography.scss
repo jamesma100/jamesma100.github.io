@@ -77,11 +77,11 @@ picture {
 
 blockquote {
   padding: $base-spacing 0 $base-spacing $base-spacing;
-  margin: $base-spacing 0;
+  margin: $base-spacing $base-spacing;
   color: $dark-gray-color;
   line-height: 1.8;
-  border-left: $small-spacing solid $light-gray-color;
-  background-color: lighten($light-gray-color, 15%);
+  //border-left: $small-spacing solid $light-gray-color;
+  // background-color: lighten($light-gray-color, 15%);
   p {
     margin: 0;
   }
