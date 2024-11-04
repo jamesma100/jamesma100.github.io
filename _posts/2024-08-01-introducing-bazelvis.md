@@ -16,7 +16,7 @@ To visualise the whole tree, Bazel [recommends](https://bazel.build/query/guide#
 
 A hello-world tutorial looks like this:
 
-<img src="/assets/images/deps_rotated.svg" alt="bazel dependency graph" width="700"/>
+<img src="/assets/images/deps_rotated.jpg" alt="bazel dependency graph" width="700"/>
 
 Can you imagine what this would look like for any sizable project?!
 
