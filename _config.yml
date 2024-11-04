@@ -3,7 +3,7 @@ title_left    : "James"
 title_right   : "Ma" # default: ""
 description   : "James Ma"
 keywords      : ""
-url           : https://jamesma100.github.io # site url
+url           : //jamesma100.github.io # site url
 baseurl       : "" # apply repo name like "/myproject" if used under gh-pages branch, else (under master branch) just leave empty/blank
 cover         : "" # image uri like logo/cover image for site seo
 
