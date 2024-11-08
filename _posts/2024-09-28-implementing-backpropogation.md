@@ -4,6 +4,8 @@ title: "Simple backpropogation in Python and numpy"
 ---
 In our [previous post](/2024/deriving-backpropogation/), we introduced backpropogation as a means for efficiently training neural networks.
 Here we'll attempt to implement a simple Python framework to train a fully-connected neural network given some training data and a description of the network architecture.
+You can find the full code [here](https://github.com/jamesma100/nn.learn/blob/main/backprop.py).
+
 The goal here is _not_ to give a primer on neural networks and how to best design them. Rather, we will focus on the training process via the backpropogation algorithm we derived last time. 
 
 Once again, for learning purposes, we won't be using pytorch and friends.
