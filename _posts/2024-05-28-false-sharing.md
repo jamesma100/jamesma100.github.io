@@ -54,8 +54,11 @@ Since they are contiguous in memory, we can expect them to reside on the same ca
 Then, we create a function that updates either `a` or `b` a large number of times.
 ```c
 #include <stdio.h>
+
 #include <stdlib.h>
+
 #include <pthread.h>
+
 
 unsigned long NUM_ITER = 3l * 1000l * 1000l * 1000l; //3 billion
 
