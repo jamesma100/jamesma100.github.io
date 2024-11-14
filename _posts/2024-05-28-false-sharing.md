@@ -57,22 +57,29 @@ Then, we create a function that updates either `a` or `b` a large number of time
 #include <stdlib.h>
 #include <pthread.h>
 
-long NUM_ITER = 3l * 1000l * 1000l * 1000l; //3 billion
+unsigned long NUM_ITER = 3l * 1000l * 1000l * 1000l; //3 billion
 
 typedef struct {
-  int a;
-  int b;
+  unsigned long a;
+  unsigned long b;
 } Foo;
+
+typedef enum {
+  A,
+  B
+} Var;
 
 Foo foo = {0, 0};
 
 void *increment(void *var) {
-  char *c = (char*)var;
   for (size_t i = 0; i < NUM_ITER; ++i) {
-    if (*c == 'a') {
-      foo.a++;
-    } else if (*c == 'b') {
-      foo.b++;
+    switch ((Var)var) {
+      case A:
+        foo.a++;
+        break;
+      case B:
+        foo.b++;
+        break;
     }
   }
   return NULL;
@@ -82,7 +89,7 @@ Here is the main method that creates one thread which updates `a` 3 billion time
 ```c
 int main() {
   pthread_t ta;
-  pthread_create(&ta, NULL, increment, (void*)"a");
+  pthread_create(&ta, NULL, increment, (void*)A);
   pthread_join(ta, NULL);
   return 0;
 }
@@ -105,8 +112,8 @@ Our main method now looks like this:
 int main() {
   pthread_t ta;
   pthread_t tb;
-  pthread_create(&ta, NULL, increment, (void*)"a");
-  pthread_create(&tb, NULL, increment, (void*)"b");
+  pthread_create(&ta, NULL, increment, (void*)A);
+  pthread_create(&tb, NULL, increment, (void*)B);
   pthread_join(ta, NULL);
   pthread_join(tb, NULL);
   return 0;
