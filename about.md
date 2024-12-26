@@ -4,8 +4,103 @@ title: about
 permalink: /about/
 ---
 
-In the past I studied computer science at the University of Wisconsin-Madison, where I was part of Prof. [Dane Morgan](https://directory.engr.wisc.edu/mse/faculty/morgan_dane)'s research group working on ML for molecular data. I also worked with Dr. [Farhan Raza](https://www.medicine.wisc.edu/people-search/people/staff/6357/Raza_Farhan) on statistical analysis of heart failure and co-authored a [paper](https://www.ahajournals.org/doi/abs/10.1161/CIRCHEARTFAILURE.123.010826) in the American Heart Association.
+I'm a software engineer based in Seattle. 
 
-I'm currently a software engineer at [Foursquare](https://foursquare.com/), building tools for large-scale geospatial data. I enjoy writing and using software that is performant, secure, simple, open-source, and bloat-free. I do use a [GitHub](https://github.com/jamesma100), though I may be moving off of it soon (see my previous point).
+In the past I studied computer science at the University of Wisconsin-Madison, where I was part of Prof. [Dane Morgan](https://directory.engr.wisc.edu/mse/faculty/morgan_dane)'s research group working on supervised learning for molecular data. I also worked with Dr. [Farhan Raza](https://www.medicine.wisc.edu/people-search/people/staff/6357/Raza_Farhan) on [statistical analysis of heart failure](https://www.ahajournals.org/doi/abs/10.1161/CIRCHEARTFAILURE.123.010826).
 
-My preferred contact method is email, which is jamesma100 [at] gmail [dot] com. You can find my GPG key [here](/assets/files/mygpg.key).
+Outside of work I enjoy books, photography, and travel. I also write occasionally, about tech and otherwise. You can reach me at `jamesma100[at]gmail[dot]com`.
+<br>
+<br>
+<br>
+
+```
+-----BEGIN PGP PUBLIC KEY BLOCK-----
+
+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
+=fZvz
+-----END PGP PUBLIC KEY BLOCK-----
+```
+
