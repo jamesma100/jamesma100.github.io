@@ -49,6 +49,12 @@ p {
   }
 }
 
+p,
+li,
+ol {
+  max-width: 700px;
+}
+
 a {
   color: $action-color;
   text-decoration: none;
