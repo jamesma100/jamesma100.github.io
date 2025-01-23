@@ -7,7 +7,7 @@ In a [paper](https://users.ece.cmu.edu/~adrian/projects/validation/validation.pd
 In essence, it takes as input a seed to a pseudo-random number generator and uses it to construct an [abstract syntax tree](https://en.wikipedia.org/wiki/Abstract_syntax_tree) by selecting rules from a predefined grammar.
 The AST describes a function mapping (x, y) pixel values to RGB values.
 
-Recently I implemented a [version of it](https://github.com/jamesma100/randomart) in Haskell, and this page shows some images I was able to generate while experimenting with different grammars, which I've included at the end. Each column uses a different initial seed, so you can see that using a different seed results in a wildly different image, making it suitable for quickly spotting changes in, for instance, SSH public keys.
+Recently I implemented a [version of it](https://github.com/jamesma100/randomart) in Haskell, and this page shows some images I was able to generate while experimenting with different grammars, which I've included at the end. Each column uses a different initial seed, so you can see that altering the seed results in a wildly different image, making it suitable for quickly spotting changes in, for instance, SSH public keys.
 
 The outputs tend to be highly non-deterministic, but with a complicated enough grammar and deep enough tree, you can be certain the resulting image will be fascinating.
 
