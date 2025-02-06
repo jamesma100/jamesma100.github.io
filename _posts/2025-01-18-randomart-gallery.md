@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "RandomArt image gallery"
+title: "A gallery of randomly generated art"
 ---
 
 In a [paper](https://users.ece.cmu.edu/~adrian/projects/validation/validation.pdf) from CMU, security researchers describe a nifty algorithm used to generate random images known as _RandomArt_.
