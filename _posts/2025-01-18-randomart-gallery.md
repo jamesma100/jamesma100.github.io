@@ -4,6 +4,9 @@ title: "A gallery of randomly generated art"
 ---
 
 In a [paper](https://users.ece.cmu.edu/~adrian/projects/validation/validation.pdf) from CMU, security researchers describe a nifty algorithm used to generate random images known as _RandomArt_.
+In a nutshell, the algorithm takes as input a seed to a pseudo-random number generator and uses it to construct an [abstract syntax tree](https://en.wikipedia.org/wiki/Abstract_syntax_tree) by selecting rules from a predefined grammar.
+The AST describes a function mapping (x, y) pixel values to RGB values.
+
 Recently I [implemented a version](https://github.com/jamesma100/randomart) of it in Haskell, and this page shows some images I was able to generate using a pretty simple grammar. Each image uses a different initial seed, so you can see that altering the seed results in a wildly different image, making it suitable for quickly spotting changes in, for instance, SSH public keys.
 
 See the [appendix](#appendix) for more details about how this works and how to generate your own images.
@@ -94,9 +97,7 @@ for i in {1..60}; do cabal run randomart -- -p 200 -o ./images/${i}.png -d 35 \
 -s $(echo $RANDOM | shasum -a 256 | awk '{print $1}' /dev/stdin); done
 ```
 
-### How it works
-In a nutshell, what the algorithm does is it takes as input a seed to a pseudo-random number generator and uses it to construct an [abstract syntax tree](https://en.wikipedia.org/wiki/Abstract_syntax_tree) by selecting rules from a predefined grammar.
-The AST describes a function mapping (x, y) pixel values to RGB values.
+### Details
 
 The grammar I used looks like:
 
