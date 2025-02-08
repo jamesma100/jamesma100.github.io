@@ -129,7 +129,9 @@ The meat of the training lies in the following two functions.
 First, `process_batch` takes a batch of training samples, and for each sample, performs a forward pass and a backward pass while saving the intermediate activations and errors.
 We'll return a tuple consisting of 1. the activations 2. the errors and 3. the cost of the batch.
 ```python
-def process_batch(self, batch) -> (list[list[np.array]], list[list[np.array]], np.float64):
+def process_batch(
+    self, batch
+) -> (list[list[np.array]], list[list[np.array]], np.float64):
     all_activations: list[list[np.array]] = []
     all_errors: list[list[np.array]] = []
     total_cost_of_batch = 0
@@ -146,28 +148,38 @@ def process_batch(self, batch) -> (list[list[np.array]], list[list[np.array]], n
     return (all_activations, all_errors, total_cost_of_batch[0])
 ```
 The second main function, `update_params`, takes the cached activations and errors we just found for our batch and adjusts the weights and biases.
+
 ```python
-def update_params(self, all_activations, all_errors, train_in, num_samples_in_batch):
+def update_params(
+    self, all_activations, all_errors, train_in, num_samples_in_batch
+):
     num_updates = len(self.weights)
     for i in range(num_updates):
-        if i != 0:
-            delta_w = sum(
-                [
-                    errors[i] @ activations[i - 1].transpose()
-                    for activations, errors in zip(all_activations, all_errors)
-                ]
-            )
-            self.weights[i] -= self.rate / num_samples_in_batch * delta_w
-        else:
-            delta_w = sum(
-                [
-                    errors[i] @ sample.transpose()
-                    for sample, errors in zip(train_in, all_errors)
-                ]
-            )
-            self.weights[i] -= self.rate / num_samples_in_batch * delta_w
+        delta_w = sum([
+            errors[i] @ activations[i - 1].transpose()
+            for activations, errors in zip(all_activations, all_errors)
+        ]) if i != 0 else sum([
+            errors[i] @ sample.transpose()
+            for sample, errors in zip(train_in, all_errors)
+        ])
+        self.weights[i] -= self.rate / num_samples_in_batch * delta_w
         delta_b = sum([errors[i] for errors in all_errors])
         self.biases[i] -= self.rate / num_samples_in_batch * delta_b
+```
+
+Then we can make a `train()` function that just calls the above two functions in a loop:
+```python
+def train(self, train_in, train_out):
+    num_samples_total = len(train_in)
+    batches = self.make_batches(train_in, train_out, 3)
+    for i in range(self.num_iter):
+        total_cost = 0
+        for batch in batches:
+            all_activations, all_errors, total_cost_of_batch = self.process_batch(
+                batch
+            )
+            total_cost += total_cost_of_batch
+            self.update_params(all_activations, all_errors, train_in, len(batch))
 ```
 
 We can now initialise our network and begin training it.

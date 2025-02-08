@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "Interpreter vs JIT: a practical illustration"
+title: "What's the difference between a JIT and an interpreter?"
 ---
 
 It's commonly known that there are three main ways to execute code - you can compile it, interpret it, or use a JIT (just-in-time execution).
