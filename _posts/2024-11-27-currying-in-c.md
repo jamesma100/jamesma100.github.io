@@ -90,4 +90,4 @@ uint32_t arg = code[3] << 0 | code[4] << 8 | code[5] << 16 | code[6] << 24;
 ```
 and similarly for the unsigned long function pointer.
 
-Lastly, as a caveat, you shouldn't actually do any of this in real code, but I think it was a fun exercise to explore what computers are capable of. Often, in the process of doing useless things you end up learning useful things.
+Lastly, as a caveat, you probably shouldn't do any of this in real code, as heap allocation is slow and executing memory directly likely opens up security vulnerabilities. But alas, I think it was a fun exercise to explore what computers are capable of.
