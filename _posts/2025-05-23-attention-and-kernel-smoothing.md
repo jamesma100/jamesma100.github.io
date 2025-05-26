@@ -3,6 +3,8 @@ layout: post
 title: "Attention as a kernel smoothing problem"
 ---
 
+[Reddit discussion](https://www.reddit.com/r/MachineLearning/comments/1kuoifv/r_attention_as_a_kernel_smoothing_problem/)
+
 This post is about a rarely discussed interpretation of "attention," the underlying technique behind transformers, which has found its way into everything from natural language processing to computer vision.
 Namely: _attention can be viewed as a kernel smoothing problem for estimating a function given surrounding observations._
 
