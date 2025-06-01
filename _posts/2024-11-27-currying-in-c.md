@@ -2,9 +2,8 @@
 layout: post
 title: "Currying C functions using a heap-based trampoline"
 ---
-Suppose you are implementing some sort of system that dispatches jobs to workers.
-You have a function, and with it some arguments, that you would like to send off to a worker thread to be completed in a non-blocking manner.
-The canonical way to do this is in C is via `pthread_create()`, but it unfortunately takes only a void pointer to be passed into the supplied function, making it difficult to pass in an arbitrary number of arguments.
+Suppose you have a function and an argument that you want to send off to a worker thread.
+The canonical way to do this in C is via `pthread_create()`.
 
 ```
 $ man pthread_create
@@ -18,10 +17,15 @@ SYNOPSIS
                           void *restrict arg);
 
 ```
+However, it only accepts a single void pointer as the function argument `arg`.
+What if we have multiple arguments?
+
 A common way to get around this limitation is to define a struct with all your arguments and cast it to `void*` before passing it in.
 Then, to unwrap them in your thread, cast the void pointer back to a struct pointer and retrieve its members.
 
-Often, however, we _know_ the argument(s) beforehand, and it would be nice to inline those into our function so that the thread itself needs no arguments, in which case we can simply pass in `NULL` for the argument. This would eliminate the need for the whole struct-pointer-casting dance.
+But wouldn't it be nice to inline the arguments into our function so that we don't need an `arg` parameter?
+This would eliminate the need for the whole struct-pointer-casting dance.
+It might also make room for compiler optimizations.
 
 In functional languages, we do this by currying.
 In Haskell, for example, we can define the following function of type `Int -> Int -> Int` (read: a function that takes in an integer and returns another function that takes in an integer and finally returns an integer).
@@ -43,7 +47,7 @@ The best I could come up with is a nasty trick (ab)using [GCC's support for nest
 ## Constructing a trampoline
 In a [blog post](https://nullprogram.com/blog/2019/11/15/), Chris Wellons discusses using an executable stack to create closures, allowing for nested functions to access the variables in their containing function. (The purpose of the post was not actually to glamorize it, but to shed light on how difficult it is to turn off the feature completely, as it is a security vulnerability.) The tl;dr is to store the function and the supplied argument on the stack, then jump to it via the `jmp` instruction. Hence, a trampoline.
 
-Executable stacks are, however, disabled on OpenBSD, the system I am on. Furthermore, I wanted to _return_ the new function pointer rather than just calling it in the containing function, so I need the code to persist even after the stack frame is freed. Moving the trampoline onto the heap solves both these problems.
+Executable stacks are, however, disabled on the system I am on. Furthermore, I wanted to _return_ the new function pointer rather than just calling it in the containing function, so I need the code to persist even after the stack frame is freed. Moving the trampoline onto the heap solves both these problems.
 
 To recap, the goal is to recreate the Haskell example from earlier. Namely, a function that takes in another function with signature `Int -> Int -> Int` and an integer, and returns a function with signature `Int -> Int`. In C function pointer notation, that looks like this:
 ```c
