@@ -24,10 +24,10 @@ However, what if you had a Future of an Option, i.e. `Future[Option[A]]`?
 Perhaps a potentially long-running database fetch.
 
 ```scala
-def getUserIdOptF: Future[Option[Int]] = {
+def getUserIdOptF: Future[Option[String]] = {
     // ...some potentially long running database fetch...
 }
-def getSSNOptF(i: Int): Future[Option[Int]] = {
+def getSSNOptF(s: String): Future[Option[String]] = {
     // ...get ssn if it exists...
 }
 ```
@@ -54,7 +54,7 @@ class FutureOption[A](futureOpt: Future[Option[A]]) {
 
 Now this works:
 ```scala
-val userIdOptF = FutureOption[Int](getUserIdOptF)
+val userIdOptF = FutureOption[String](getUserIdOptF)
 userIdOptF.flatMap(getSSNOptF)
 ```
 
@@ -69,8 +69,8 @@ The same idea above can now be written much more succinctly:
 import cats.data.OptionT
 import cats.syntax.all._
 
-def wrappedGetUserIdOptF: OptionT[Future, Int] = OptionT(getUserIdOptF)
-def wrappedGetSSNOptF(i: Int): OptionT[Future, Int] = OptionT(getSSNOptF(i))
+def wrappedGetUserIdOptF: OptionT[Future, String] = OptionT(getUserIdOptF)
+def wrappedGetSSNOptF(s: String): OptionT[Future, String] = OptionT(getSSNOptF(s))
 wrappedGetUserIdOptF.flatMap(wrappedGetSSNOptF)
 ```
 Note that while the outer monad can be generic, the inner is fixed to an Option.
@@ -79,10 +79,10 @@ The reasoning for this is beyond my understanding.
 
 Lastly, you can imagine dealing with functions that return Futures and Options as well.
 ```scala
-def getSSNOfSpouseOpt(i: Int): Option[Int] = {
+def getSSNOfSpouseOpt(s: String): Option[String] = {
     // ...given someone's ssn, get their spouse's ssn...
 }
-def scrambleDigitsF(i: Int): Future[Int] {
+def scrambleDigitsF(s: String): Future[String] {
     // ... scramble digits of a ssn...
 }
 ```
@@ -95,9 +95,9 @@ Fortunately, cats provides two functions that allow you to "lift" both Options a
 - `fromOption[F]()` does the same to functions returning Options
 
 ```scala
-def wrappedGetSSNOfSpouseOpt(i: Int) =
-    OptionT.fromOption[Future](getSSNOfSpouseOpt(i))
-def wrappedScrambleDigitsF(i: Int) = OptionT.liftF(scrambleDigitsF(i))
+def wrappedGetSSNOfSpouseOpt(s: String) =
+    OptionT.fromOption[Future](getSSNOfSpouseOpt(s))
+def wrappedScrambleDigitsF(s: String) = OptionT.liftF(scrambleDigitsF(s))
 ```
 
 And we're back to where we started - one operation to rule them all:
