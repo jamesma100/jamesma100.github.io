@@ -5,7 +5,7 @@ title: "Parser combinators for postal addresses"
 
 A while ago, Tsoding did a [stream](https://www.youtube.com/watch?v=N9RUqGYuGfw&t=5936s&ab_channel=Tsoding) on parsing JSON with parser combinators.
 I was curious how hard it would be to use the basic parsers he implemented to create a new parser for U.S. postal addresses.
-It turns out once you have basic building blocks implemented, creating new parsers is not only easy, but fun!
+It turns out once you have basic building blocks, creating new parsers is not only easy, but fun!
 You can find the full code [here](https://github.com/jamesma100/postal-address-parser).
 
 I recommend watching the video first, but if you want a dumbed down introduction to parser combinators, read on.
@@ -24,8 +24,8 @@ To keep things simple, we will be working with a simplified version of this Wiki
     <zip-part> ::= <town-name> "," <state-code> <ZIP-code> <EOL>
 ```
 An address consists of three parts: a name part, a street address, and a zip part.
-Each part can take on multiple forms; for example, a name part optionally have a suffix at the end.
-We would like to parse this into some sort of a graph, where each node represents each component.
+Each part can take on multiple forms; for example, a name part can optionally have a suffix at the end.
+We would like to parse this into some a tree, where each node represents each component.
 
 For this simple example, using parser combinators is probably an overkill, as you can probably just brute-force parse it in Python.
 However, as the postal address format changes and grows, we're going to want a more scalable approach that can adapt to these changes.
@@ -33,7 +33,7 @@ And as you will see by the end, parser combinators provide a clean abstraction t
 You'll also realize that functional programming can actually be useful and isn't just a pretentious cult!
 
 ## Parsing characters and strings
-The core idea of parser combinators is to 1. define basic parsers as our building blocks and 2. define the _operations_ on those parsers such that they can combine with each other in various ways.
+The core idea of combinator parsing is to 1. define basic parsers as our building blocks and 2. define the _operations_ on those parsers such that they can combine with each other in various ways.
 
 First, let's translate the BNF from the previous section to code.
 ```haskell
@@ -70,14 +70,15 @@ data AptNum =
   AptNum String deriving (Show, Eq)
 ```
 
-We then define our parser.
+We can then define our parser.
 ```haskell
 data Parser a = Parser {
   runParser :: String -> Maybe (a, String)
 }
 ```
 which is a datatype with a single field `runParser`.
-You can see that it takes a string to parse, and returns a `Maybe` of something of type `a` that it parsed as well as the remainder of the string that it didn't parse, which can be fed as input to other parsers to continue parsing the original string.
+You can see that it takes a string to parse, and returns a `Maybe` of something of type `a` that it parsed, along with the remainder of the string that it didn't parse.
+The remaining sring can be fed as input to other parsers to continue parsing.
 
 A couple notes on this weird syntax.
 Haskell actually creates a _method_ named `runParser` that has signature
@@ -106,10 +107,10 @@ We can use this to create a parser for the letter `'h'` for instance, and use it
 ghci> runParser (charParserG 'h') "hello"
 Just ('h',"ello")
 ```
-As expected, it parsed the letter `"h"` and left the remainder of the string untouched.
+As expected, it parsed the letter `"h"` and left the rest of the string untouched.
 
 How would we parse a string?
-We could do something similar to `charParserG`, but instead of looking at a character, we try to match a string.
+We could do something similar to `charParserG`, but instead of looking at a single character, we try to match an entire string.
 
 ```haskell
 substr :: Int -> Int -> String -> String
@@ -123,7 +124,7 @@ stringParserGDumb s = Parser f
       | otherwise = Nothing
 ```
 This works fine, but there is a lot of boilerplate code.
-What if I told you we could _combine_ many `charParserG`s to create a `stringParserG`?
+What if I told you we could _combine_ many `charParserG`'s to create a `stringParserG`?
 
 After all, a string is simply a list of characters.
 As a first attempt, we can try to call the `map` function, but unfortunately the result is of the wrong type.
@@ -134,7 +135,7 @@ map charParserG "hello" :: [Parser Char]
 ```
 That is, it gives us a list of char parsers, but what we want is a parser of a list of chars.
 So we need to somehow flip the parser inside out.
-Luckily, there is a function that does exactly this!
+Luckily, there is a function that does exactly this.
 
 ```
 ghci> :info sequenceA
@@ -145,7 +146,7 @@ class (Functor t, Foldable t) => Traversable t where
   ...
   	-- Defined in ‘Data.Traversable’
 ```
-However, `sequenceA` is defined in the `Functor` interface so we need to implement that for our Parser before we can use it.
+`sequenceA` however, is defined in the `Functor` interface which mean we need to implement that for our `Parser` type before we can use it.
 
 ## Functor
 To implement a functor, we need to define the operator `fmap`, or `<$>`, which has the following signature.
@@ -157,14 +158,13 @@ It then _unwraps_ the `f a` value, runs the function on the `a` to get a `b`, th
 
 This is much easier to understand through an example.
 Let's say we have a `Maybe` of an `Int`, and we want to double the value inside it and return another `Maybe` type.
-We can do something like this:
+Since the `Maybe` type is a functor, we can simply call the `fmap` operator.
 ```
 ghci> (\i -> i * 2) <$> (Just 2)
 Just 4
 ```
-Since the `Maybe` type is a functor, we can simply call the `fmap` operator.
 Much better than manually unwrapping the `Maybe` and doing the repackaging ourselves!
-This is a trivial example but you can imagine much more complicated containers with a lot of hidden state that would be infeasible to handle manually.
+This is a trivial example but you can imagine much more complicated versions of `f` with a lot of hidden state that would be impractical to handle manually.
 
 So for our parser, given a function and `parserA`, we need to apply the function to the output of `parserA` and return a new parser `parserB`.
 ```haskell
@@ -177,7 +177,7 @@ instance Functor Parser where
         Just (a, as) -> Just (f a, as)
 ```
 
-As an example, we can easily map the function `toUpper` to our "h" parser defined before.
+As an example, we can easily map the function `toUpper` to our parser for `"h"`.
 ```
 ghci> runParser (toUpper <$> (charParserG 'h')) "hello"
 Just ('H',"ello")
@@ -197,8 +197,8 @@ Just ("hello"," world!!")
 
 If we go back to our postal address discussion and try to parse something simple like a `FirstName`,
 we run into an issue: that is, our `stringParserG` function can only generate parsers for _specific_ strings.
-But a first name can be _any_ string given some condition, such as only containing letters in the alphabet.
-This means we need another  function that can generate a string parser _for some condition_.
+But a first name can be _any_ string given some condition, such as that containing only letters in the alphabet.
+This means we need another function that can generate a string parser _for some condition_.
 
 Luckily, there is a function called `span` defined in `GHC.List` that does just this!
 It takes a string and a boolean function and returns a tuple of two elements: everything it could greedily match and the rest of the string.
@@ -227,7 +227,7 @@ numberParser :: Parser String
 numberParser = spanParserG isDigit
 ```
 
-Using the `fmap` operator we defined earlier for our functor, we can create a parser for `FirstName`.
+Using the `fmap` operator we defined earlier for our functor, we can now create a parser for `FirstName`.
 ```haskell
 firstNameParser :: Parser FirstName
 firstNameParser = FirstName <$> stringLiteralParser
@@ -315,7 +315,7 @@ namePartParser = namePartWithSuffixParser <|> namePartBasicParser
 which tries to match the name part with a suffix, but if it fails falls back to a basic name.
 
 How do we implement `namePartWithSuffixParser` and `namePartBasicParser`?
-For these, we now need to run a _sequence_ of parsers on some input string, each parser parsing remainder of the input string left behind by its preceding parser.
+For these, we now need to run a _sequence_ of parsers on some input string, each parser parsing the remainder of the input string left behind by its preceding parser.
 To do this, we need the "bind" operator, or `>>=` defined in the `Monad` interface.
 
 ```
@@ -341,7 +341,7 @@ instance Monad Parser where
       Just (a, as) -> runParser (f a) as
 ```
 
-Consider the follwing parser that parsed `"good"`.
+Consider the follwing parser that parses `"good"`.
 ```
 ghci> runParser (stringParserG "good") "goodbye"
 Just ("good","bye")
@@ -378,7 +378,7 @@ namePartParser = namePartWithSuffixParser <|> namePartBasicParser
 
 Note the `<*` operator defined in the `Applicative` interface.
 It sequentially applies two parsers, but only returns the result of the first.
-As an example, if we want to parse "good night" followed by an exclamation point, but only want the string "good night", we would do something like:
+As an example, if we want to parse `"good night"` followed by an exclamation point, but only want the string `"good night"`, we can do something like:
 ```haskell
 ghci> runParser ( stringParserG "good night" <* charParserG '!') "good night!"
 Just ("good night","")
