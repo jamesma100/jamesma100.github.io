@@ -25,7 +25,7 @@ To keep things simple, we will be working with a simplified version of this Wiki
 ```
 An address consists of three parts: a name part, a street address, and a zip part.
 Each part can take on multiple forms; for example, a name part can optionally have a suffix at the end.
-We would like to parse this into some a tree, where each node represents each component.
+We would like to parse a string representing a postal address into a tree, where each node represents each component.
 
 For this simple example, using parser combinators is probably an overkill, as you can probably just brute-force parse it in Python.
 However, as the postal address format changes and grows, we're going to want a more scalable approach that can adapt to these changes.
@@ -78,7 +78,7 @@ data Parser a = Parser {
 ```
 which is a datatype with a single field `runParser`.
 You can see that it takes a string to parse, and returns a `Maybe` of something of type `a` that it parsed, along with the remainder of the string that it didn't parse.
-The remaining sring can be fed as input to other parsers to continue parsing.
+The remaining string can be fed as input into other parsers to continue parsing.
 
 A couple notes on this weird syntax.
 Haskell actually creates a _method_ named `runParser` that has signature
@@ -107,7 +107,7 @@ We can use this to create a parser for the letter `'h'` for instance, and use it
 ghci> runParser (charParserG 'h') "hello"
 Just ('h',"ello")
 ```
-As expected, it parsed the letter `"h"` and left the rest of the string untouched.
+As expected, it parsed the letter `'h'` and left the rest of the string untouched.
 
 How would we parse a string?
 We could do something similar to `charParserG`, but instead of looking at a single character, we try to match an entire string.
@@ -177,7 +177,7 @@ instance Functor Parser where
         Just (a, as) -> Just (f a, as)
 ```
 
-As an example, we can easily map the function `toUpper` to our parser for `"h"`.
+As an example, we can easily map the function `toUpper` to our parser for `'h'`.
 ```
 ghci> runParser (toUpper <$> (charParserG 'h')) "hello"
 Just ('H',"ello")
@@ -341,7 +341,7 @@ instance Monad Parser where
       Just (a, as) -> runParser (f a) as
 ```
 
-Consider the follwing parser that parses `"good"`.
+Consider the following parser that parses `"good"`.
 ```
 ghci> runParser (stringParserG "good") "goodbye"
 Just ("good","bye")
@@ -352,7 +352,7 @@ ghci> runParser ((stringParserG "good") >>= (\s -> stringParserG "bye")) "goodby
 Just ("bye","")
 ```
 
-## Impelmenting our parser
+## Implementing our parser
 The hard part is done!
 Now we can implement a parser for basic names and a parser for names with suffixes.
 To do this, we can make use of the `do` notation for monads and call the smaller parsers we implemented earlier, i.e. `firstNameParser`, `lastNameParser`, and `suffixPartParser`.
@@ -378,7 +378,7 @@ namePartParser = namePartWithSuffixParser <|> namePartBasicParser
 
 Note the `<*` operator defined in the `Applicative` interface.
 It sequentially applies two parsers, but only returns the result of the first.
-As an example, if we want to parse `"good night"` followed by an exclamation point, but only want the string `"good night"`, we can do something like:
+As an example, if we want to parse `"good night"` followed by an exclamation point, but only want the string `"good night"` to be captured, we can do something like:
 ```haskell
 ghci> runParser ( stringParserG "good night" <* charParserG '!') "good night!"
 Just ("good night","")
@@ -461,5 +461,5 @@ For more on parser combinators, I recommend this list of resources:
 - [Tsoding: parser combinator library in OCaml](https://www.youtube.com/watch?v=Y5IIXUBXvLs)
 - [What's in a parser combinator?](https://remusao.github.io/posts/whats-in-a-parser-combinator.html)
 
-And if you really must, the whitepaper:
+And if you really must, a more formal paper discussing this:
 - [Monadic Parser Combinators](https://people.cs.nott.ac.uk/pszgmh/monparsing.pdf)
