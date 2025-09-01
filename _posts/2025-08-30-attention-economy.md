@@ -38,7 +38,7 @@ As a side benefit, you'll notice that UIs are less responsive in the browser. Lo
 Disable biometrics - face ID, touch ID, and whatever else is out there.
 Use a 20-character passphrase with special symbols.
 This will make unlocking your phone more difficult.
-Furthermore, if you get arrested, usually law enforcement can force you to [unlock your phone via biometrics](https://arstechnica.com/tech-policy/2024/04/cops-can-force-suspect-to-unlock-phone-with-thumbprint-us-court-rules/), but they need your password, all you have to do is stay silent.
+Furthermore, if you get arrested, usually law enforcement can force you to [unlock your phone via biometrics](https://arstechnica.com/tech-policy/2024/04/cops-can-force-suspect-to-unlock-phone-with-thumbprint-us-court-rules/), but if they ask for your password, all you have to do is stay silent.
 
 ## 5. Spend more time outdoors
 Spending time in nature is both physically and mentally therapeutic.
