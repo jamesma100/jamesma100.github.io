@@ -6,9 +6,14 @@ permalink: /about/
 
 I'm a software engineer based in Seattle. 
 
-In the past I studied computer science at the University of Wisconsin-Madison, where I was part of Prof. [Dane Morgan](https://directory.engr.wisc.edu/mse/faculty/morgan_dane)'s research group working on supervised learning for molecular data. I also worked with Dr. [Farhan Raza](https://www.medicine.wisc.edu/people-search/people/staff/6357/Raza_Farhan) on [statistical analysis of heart failure](https://www.ahajournals.org/doi/abs/10.1161/CIRCHEARTFAILURE.123.010826).
+I spent the past three years at [Foursquare](https://foursquare.com/) working on tools and systems for processing large-scale geolocation data.
+Before that I studied computer science at the University of Wisconsin-Madison, where I worked with Professor [Dane Morgan](https://directory.engr.wisc.edu/mse/faculty/morgan_dane) on supervised learning for molecular data and Dr. [Farhan Raza](https://www.medicine.wisc.edu/people-search/people/staff/6357/Raza_Farhan) on [statistical analysis of pulmonary compliance](https://www.ahajournals.org/doi/abs/10.1161/CIRCHEARTFAILURE.123.010826).
 
-Outside of work I enjoy books, photography, and travel. I also write occasionally, about tech and otherwise. You can reach me at `jamesma100[at]gmail[dot]com`.
+I'm interested in developer tools, distributed systems, and low-level systems programming.
+I also like algorithms/machine learning, though I generally don't focus on them.
+
+Outside of work I enjoy reading books and articles, doing street photography, and travelling. I write occasionally on this blog about random things I find interesting. If you want to talk about anything, feel free to reach me at `jamesma100[at]gmail[dot]com`.
+
 <br>
 <br>
 <br>
