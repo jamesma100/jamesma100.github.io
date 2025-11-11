@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "Learning C++ part 2: smart pointers speedrun"
+title: "C++ smart pointers speedrun"
 ---
 
 Raw pointers can be useful when you want to manipulate memory directly, but using them comes with consequences if improperly managed, e.g. if you forget to free a pointer, free a pointer more than once, or try to use a pointer after freeing it.
