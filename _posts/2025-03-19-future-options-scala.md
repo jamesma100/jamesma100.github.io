@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "Abstracting over Futures and Options"
+title: "Combining Futures and Options in Scala"
 ---
 
 In Scala, two interesting concepts you'll often work with are Futures and Options.
