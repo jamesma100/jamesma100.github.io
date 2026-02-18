@@ -13,6 +13,7 @@ I'm interested in developer tools, distributed systems, and low-level systems pr
 I also like algorithms/machine learning, though I generally don't focus on them.
 
 Outside of work I enjoy reading books and articles, doing street photography, and travelling. I write occasionally on this blog about random things I find interesting. If you want to talk about anything, feel free to reach me at `jamesma100[at]gmail[dot]com`.
+I am also on [Github](https://github.com/jamesma100) and [Linkedin](https://www.linkedin.com/in/jamesma100/).
 
 <br>
 <br>
